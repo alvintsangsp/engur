@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Eye, RotateCcw, ThumbsUp, Sparkles } from "lucide-react";
+import AudioPlayer from "./AudioPlayer";
 
 interface Example {
   en: string;
@@ -10,6 +11,7 @@ interface Example {
 
 interface FlashcardProps {
   word: string;
+  ipa?: string;
   definitions: string[];
   pos: string[];
   pinyin: string[];
@@ -20,6 +22,7 @@ interface FlashcardProps {
 
 const Flashcard = ({
   word,
+  ipa,
   definitions,
   pos,
   pinyin,
@@ -39,16 +42,19 @@ const Flashcard = ({
   };
 
   return (
-    <div className="w-full max-w-2xl mx-auto">
+    <div className="w-full">
       <div className="flashcard">
         <div className={`flashcard-inner ${isFlipped ? "flipped" : ""}`}>
           {/* Front of card */}
           <div className="flashcard-face flashcard-front border border-border">
-            <div className="flex-1 flex flex-col items-center justify-center text-center">
-              <h2 className="text-4xl sm:text-5xl font-display font-bold text-foreground mb-6">
+            <div className="flex-1 flex flex-col items-center justify-center text-center px-4">
+              <h2 className="text-3xl sm:text-5xl font-display font-bold text-foreground mb-3">
                 {word}
               </h2>
-              <div className="flex flex-wrap justify-center gap-2">
+              
+              <AudioPlayer word={word} ipa={ipa} compact />
+              
+              <div className="flex flex-wrap justify-center gap-2 mt-4">
                 {pos.map((p, i) => (
                   <Badge
                     key={i}
@@ -63,7 +69,7 @@ const Flashcard = ({
             <Button
               onClick={handleFlip}
               size="lg"
-              className="w-full bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90 transition-opacity"
+              className="w-full h-14 bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90 transition-opacity text-base font-medium"
             >
               <Eye className="w-5 h-5 mr-2" />
               Show Answer
@@ -72,10 +78,17 @@ const Flashcard = ({
 
           {/* Back of card */}
           <div className="flashcard-face flashcard-back border border-border overflow-y-auto">
-            <div className="flex-1 space-y-4">
-              <h2 className="text-2xl font-display font-bold text-foreground text-center">
-                {word}
-              </h2>
+            <div className="flex-1 space-y-3 overflow-y-auto">
+              <div className="text-center">
+                <h2 className="text-xl sm:text-2xl font-display font-bold text-foreground">
+                  {word}
+                </h2>
+                {ipa && (
+                  <span className="font-mono text-sm text-muted-foreground">
+                    {ipa}
+                  </span>
+                )}
+              </div>
               
               {/* Definitions */}
               <div className="space-y-2">
@@ -85,7 +98,7 @@ const Flashcard = ({
                       {i + 1}
                     </span>
                     <div>
-                      <p className="font-chinese text-foreground">{def}</p>
+                      <p className="font-chinese text-sm sm:text-base text-foreground">{def}</p>
                       {pinyin[i] && (
                         <p className="text-xs text-muted-foreground">
                           {pinyin[i]}
@@ -100,7 +113,7 @@ const Flashcard = ({
               {examples.length > 0 && (
                 <div className="pt-2 border-t border-border space-y-2">
                   {examples.slice(0, 2).map((ex, i) => (
-                    <div key={i} className="text-sm">
+                    <div key={i} className="text-xs sm:text-sm">
                       <p className="text-foreground">{ex.en}</p>
                       <p className="font-chinese text-muted-foreground">{ex.zh}</p>
                     </div>
@@ -110,12 +123,12 @@ const Flashcard = ({
             </div>
 
             {/* Rating buttons */}
-            <div className="grid grid-cols-3 gap-2 pt-4">
+            <div className="grid grid-cols-3 gap-2 pt-3">
               <Button
                 onClick={() => handleRate("again")}
                 disabled={isUpdating}
                 variant="outline"
-                className="border-destructive text-destructive hover:bg-destructive/10"
+                className="h-12 border-destructive text-destructive hover:bg-destructive/10 text-sm font-medium"
               >
                 <RotateCcw className="w-4 h-4 mr-1" />
                 Again
@@ -124,7 +137,7 @@ const Flashcard = ({
                 onClick={() => handleRate("good")}
                 disabled={isUpdating}
                 variant="outline"
-                className="border-success text-success hover:bg-success/10"
+                className="h-12 border-success text-success hover:bg-success/10 text-sm font-medium"
               >
                 <ThumbsUp className="w-4 h-4 mr-1" />
                 Good
@@ -133,7 +146,7 @@ const Flashcard = ({
                 onClick={() => handleRate("easy")}
                 disabled={isUpdating}
                 variant="outline"
-                className="border-warning text-warning hover:bg-warning/10"
+                className="h-12 border-warning text-warning hover:bg-warning/10 text-sm font-medium"
               >
                 <Sparkles className="w-4 h-4 mr-1" />
                 Easy

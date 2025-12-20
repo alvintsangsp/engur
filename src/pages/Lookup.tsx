@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { Search, Loader2, BookOpen } from "lucide-react";
+import { Search, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import Navigation from "@/components/Navigation";
+import BottomNav from "@/components/BottomNav";
 import VocabResult from "@/components/VocabResult";
 
 interface Example {
@@ -13,6 +13,7 @@ interface Example {
 }
 
 interface VocabData {
+  ipa?: string;
   definitions: string[];
   pos: string[];
   pinyin: string[];
@@ -105,34 +106,28 @@ const Lookup = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-soft">
-      <Navigation />
-
-      <main className="container max-w-2xl mx-auto px-4 pt-24 pb-12">
-        {/* Hero Section */}
-        <div className="text-center mb-10 animate-fade-in">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-primary shadow-glow mb-6">
-            <BookOpen className="w-8 h-8 text-primary-foreground" />
-          </div>
-          <h1 className="text-4xl font-display font-bold text-foreground mb-3">
-            Lookup & Add
+    <div className="min-h-screen bg-gradient-soft pb-20">
+      <main className="w-full px-4 pt-6 pb-8 max-w-lg mx-auto">
+        {/* Header */}
+        <div className="text-center mb-6 animate-fade-in">
+          <h1 className="text-2xl font-display font-bold text-foreground mb-1">
+            Look Up Word
           </h1>
-          <p className="text-lg text-muted-foreground max-w-md mx-auto">
-            Search for any English word to get Traditional Chinese translations,
-            pinyin, and example sentences.
+          <p className="text-sm text-muted-foreground">
+            Get Chinese translations & examples
           </p>
         </div>
 
         {/* Search Section */}
-        <div className="flex gap-3 mb-8 animate-slide-up">
+        <div className="flex gap-2 mb-6 animate-slide-up">
           <div className="flex-1 relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
             <Input
               value={word}
               onChange={(e) => setWord(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="Type an English word..."
-              className="pl-12 h-14 text-lg border-2 border-border focus:border-primary bg-card shadow-card"
+              placeholder="Enter English word..."
+              className="pl-10 h-12 text-base border-2 border-border focus:border-primary bg-card shadow-card"
               disabled={isLoading}
             />
           </div>
@@ -140,21 +135,21 @@ const Lookup = () => {
             onClick={handleLookup}
             disabled={isLoading || !word.trim()}
             size="lg"
-            className="h-14 px-8 bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90 transition-opacity"
+            className="h-12 px-5 bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90 transition-opacity"
           >
             {isLoading ? (
               <Loader2 className="w-5 h-5 animate-spin" />
             ) : (
-              "Lookup"
+              "Search"
             )}
           </Button>
         </div>
 
         {/* Loading State */}
         {isLoading && (
-          <div className="flex flex-col items-center justify-center py-16 animate-pulse-soft">
-            <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
-            <p className="text-muted-foreground">Looking up "{word}"...</p>
+          <div className="flex flex-col items-center justify-center py-12 animate-pulse-soft">
+            <Loader2 className="w-10 h-10 text-primary animate-spin mb-3" />
+            <p className="text-sm text-muted-foreground">Looking up "{word}"...</p>
           </div>
         )}
 
@@ -162,6 +157,7 @@ const Lookup = () => {
         {result && !isLoading && (
           <VocabResult
             word={word.trim().toLowerCase()}
+            ipa={result.ipa}
             definitions={result.definitions}
             pos={result.pos}
             pinyin={result.pinyin}
@@ -173,11 +169,13 @@ const Lookup = () => {
 
         {/* Empty State */}
         {!result && !isLoading && (
-          <div className="text-center py-16 text-muted-foreground animate-fade-in">
-            <p>Enter a word above to get started</p>
+          <div className="text-center py-12 text-muted-foreground animate-fade-in">
+            <p className="text-sm">Enter a word above to get started</p>
           </div>
         )}
       </main>
+
+      <BottomNav />
     </div>
   );
 };

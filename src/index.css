@@ -139,11 +139,20 @@
 
 @layer components {
   .flashcard {
-    @apply relative w-full aspect-[4/3] perspective-1000;
+    @apply relative w-full;
+    aspect-ratio: 3 / 4;
+    perspective: 1000px;
+  }
+
+  @media (min-width: 640px) {
+    .flashcard {
+      aspect-ratio: 4 / 3;
+    }
   }
 
   .flashcard-inner {
-    @apply relative w-full h-full transition-transform duration-700 transform-style-preserve-3d;
+    @apply relative w-full h-full transition-transform duration-700;
+    transform-style: preserve-3d;
   }
 
   .flashcard-inner.flipped {
@@ -151,7 +160,8 @@
   }
 
   .flashcard-face {
-    @apply absolute inset-0 backface-hidden rounded-2xl shadow-elevated p-8 flex flex-col;
+    @apply absolute inset-0 rounded-2xl shadow-elevated p-5 sm:p-8 flex flex-col;
+    backface-visibility: hidden;
   }
 
   .flashcard-front {
@@ -161,5 +171,9 @@
   .flashcard-back {
     @apply bg-card;
     transform: rotateY(180deg);
+  }
+
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0);
   }
 }

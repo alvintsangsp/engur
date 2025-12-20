@@ -34,12 +34,13 @@ serve(async (req) => {
 
     console.log(`Looking up word: ${word}`);
 
-    const systemPrompt = `You are a dictionary API that returns ONLY raw JSON. Do not use markdown. For the user's word, provide Traditional Chinese definitions, parts of speech, and pinyin.
+    const systemPrompt = `You are a dictionary API that returns ONLY raw JSON. Do not use markdown. For the user's word, provide the IPA pronunciation, Traditional Chinese definitions, parts of speech, and pinyin.
 The JSON schema must be:
 {
+  "ipa": "/ˈɛɡzæmpəl/",
   "definitions": ["定義一", "定義二"],
   "pos": ["noun", "verb"],
-  "pinyin": ["pīn yīn yī", "pīn yīn èr"],
+  "pinyin": ["dìng yì yī", "dìng yì èr"],
   "examples": [
     { "en": "This is an example.", "zh": "這是一個例子。" }
   ]
