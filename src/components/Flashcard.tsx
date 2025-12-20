@@ -1,0 +1,149 @@
+import { useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Eye, RotateCcw, ThumbsUp, Sparkles } from "lucide-react";
+
+interface Example {
+  en: string;
+  zh: string;
+}
+
+interface FlashcardProps {
+  word: string;
+  definitions: string[];
+  pos: string[];
+  pinyin: string[];
+  examples: Example[];
+  onRate: (rating: "again" | "good" | "easy") => void;
+  isUpdating: boolean;
+}
+
+const Flashcard = ({
+  word,
+  definitions,
+  pos,
+  pinyin,
+  examples,
+  onRate,
+  isUpdating,
+}: FlashcardProps) => {
+  const [isFlipped, setIsFlipped] = useState(false);
+
+  const handleFlip = () => {
+    setIsFlipped(true);
+  };
+
+  const handleRate = (rating: "again" | "good" | "easy") => {
+    onRate(rating);
+    setIsFlipped(false);
+  };
+
+  return (
+    <div className="w-full max-w-2xl mx-auto">
+      <div className="flashcard">
+        <div className={`flashcard-inner ${isFlipped ? "flipped" : ""}`}>
+          {/* Front of card */}
+          <div className="flashcard-face flashcard-front border border-border">
+            <div className="flex-1 flex flex-col items-center justify-center text-center">
+              <h2 className="text-4xl sm:text-5xl font-display font-bold text-foreground mb-6">
+                {word}
+              </h2>
+              <div className="flex flex-wrap justify-center gap-2">
+                {pos.map((p, i) => (
+                  <Badge
+                    key={i}
+                    variant="secondary"
+                    className="bg-primary/10 text-primary border-0 font-medium text-sm"
+                  >
+                    {p}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+            <Button
+              onClick={handleFlip}
+              size="lg"
+              className="w-full bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90 transition-opacity"
+            >
+              <Eye className="w-5 h-5 mr-2" />
+              Show Answer
+            </Button>
+          </div>
+
+          {/* Back of card */}
+          <div className="flashcard-face flashcard-back border border-border overflow-y-auto">
+            <div className="flex-1 space-y-4">
+              <h2 className="text-2xl font-display font-bold text-foreground text-center">
+                {word}
+              </h2>
+              
+              {/* Definitions */}
+              <div className="space-y-2">
+                {definitions.map((def, i) => (
+                  <div key={i} className="flex items-start gap-2">
+                    <span className="w-5 h-5 rounded-full bg-primary/20 text-primary text-xs font-semibold flex items-center justify-center flex-shrink-0 mt-0.5">
+                      {i + 1}
+                    </span>
+                    <div>
+                      <p className="font-chinese text-foreground">{def}</p>
+                      {pinyin[i] && (
+                        <p className="text-xs text-muted-foreground">
+                          {pinyin[i]}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Examples */}
+              {examples.length > 0 && (
+                <div className="pt-2 border-t border-border space-y-2">
+                  {examples.slice(0, 2).map((ex, i) => (
+                    <div key={i} className="text-sm">
+                      <p className="text-foreground">{ex.en}</p>
+                      <p className="font-chinese text-muted-foreground">{ex.zh}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Rating buttons */}
+            <div className="grid grid-cols-3 gap-2 pt-4">
+              <Button
+                onClick={() => handleRate("again")}
+                disabled={isUpdating}
+                variant="outline"
+                className="border-destructive text-destructive hover:bg-destructive/10"
+              >
+                <RotateCcw className="w-4 h-4 mr-1" />
+                Again
+              </Button>
+              <Button
+                onClick={() => handleRate("good")}
+                disabled={isUpdating}
+                variant="outline"
+                className="border-success text-success hover:bg-success/10"
+              >
+                <ThumbsUp className="w-4 h-4 mr-1" />
+                Good
+              </Button>
+              <Button
+                onClick={() => handleRate("easy")}
+                disabled={isUpdating}
+                variant="outline"
+                className="border-warning text-warning hover:bg-warning/10"
+              >
+                <Sparkles className="w-4 h-4 mr-1" />
+                Easy
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Flashcard;

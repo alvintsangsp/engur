@@ -14,7 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      vocabulary: {
+        Row: {
+          created_at: string
+          definitions: string[]
+          ease_factor: number | null
+          examples: Json | null
+          id: string
+          interval_days: number | null
+          next_review_at: string | null
+          pinyin: string[]
+          pos: string[]
+          word: string
+        }
+        Insert: {
+          created_at?: string
+          definitions?: string[]
+          ease_factor?: number | null
+          examples?: Json | null
+          id?: string
+          interval_days?: number | null
+          next_review_at?: string | null
+          pinyin?: string[]
+          pos?: string[]
+          word: string
+        }
+        Update: {
+          created_at?: string
+          definitions?: string[]
+          ease_factor?: number | null
+          examples?: Json | null
+          id?: string
+          interval_days?: number | null
+          next_review_at?: string | null
+          pinyin?: string[]
+          pos?: string[]
+          word?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
