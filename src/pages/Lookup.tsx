@@ -12,12 +12,20 @@ interface Example {
   zh: string;
 }
 
+interface WordFamily {
+  verb?: string;
+  noun?: string;
+  adjective?: string;
+  adverb?: string;
+}
+
 interface VocabData {
   ipa?: string;
   definitions: string[];
   pos: string[];
   pinyin: string[];
   examples: Example[];
+  word_family?: WordFamily;
 }
 
 const Lookup = () => {
@@ -27,8 +35,8 @@ const Lookup = () => {
   const [result, setResult] = useState<VocabData | null>(null);
   const { toast } = useToast();
 
-  const handleLookup = async () => {
-    if (!word.trim()) {
+  const lookupWord = async (searchWord: string) => {
+    if (!searchWord.trim()) {
       toast({
         title: "Please enter a word",
         variant: "destructive",
@@ -36,12 +44,13 @@ const Lookup = () => {
       return;
     }
 
+    setWord(searchWord.trim().toLowerCase());
     setIsLoading(true);
     setResult(null);
 
     try {
       const { data, error } = await supabase.functions.invoke("generate-vocab", {
-        body: { word: word.trim().toLowerCase() },
+        body: { word: searchWord.trim().toLowerCase() },
       });
 
       if (error) {
@@ -60,6 +69,8 @@ const Lookup = () => {
       setIsLoading(false);
     }
   };
+
+  const handleLookup = () => lookupWord(word);
 
   const handleSave = async () => {
     if (!result) return;
@@ -162,8 +173,10 @@ const Lookup = () => {
             pos={result.pos}
             pinyin={result.pinyin}
             examples={result.examples}
+            wordFamily={result.word_family}
             onSave={handleSave}
             isSaving={isSaving}
+            onLookupWord={lookupWord}
           />
         )}
 
