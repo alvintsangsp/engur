@@ -146,13 +146,15 @@
 @layer components {
   .flashcard {
     @apply relative w-full;
-    aspect-ratio: 3 / 4;
+    aspect-ratio: 4 / 5;
+    max-height: min(55vh, 450px);
     perspective: 1000px;
   }
 
   @media (min-width: 640px) {
     .flashcard {
       aspect-ratio: 4 / 3;
+      max-height: 500px;
     }
   }
 
@@ -166,7 +168,7 @@
   }
 
   .flashcard-face {
-    @apply absolute inset-0 rounded-2xl shadow-elevated p-5 sm:p-8 flex flex-col;
+    @apply absolute inset-0 rounded-2xl shadow-elevated p-4 sm:p-6 flex flex-col;
     backface-visibility: hidden;
   }
 

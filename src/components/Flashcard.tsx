@@ -44,14 +44,14 @@ const Flashcard = ({
   };
 
   return (
-    <div className="w-full">
+    <div className="w-full flex justify-center">
       <div className="flashcard">
         <div className={`flashcard-inner ${isFlipped ? "flipped" : ""}`}>
           {/* Front of card */}
           <div className="flashcard-face flashcard-front border border-border">
-            <div className="flex-1 flex flex-col items-center justify-center text-center px-4">
-              <div className="flex items-center gap-2 mb-3">
-                <h2 className="text-3xl sm:text-5xl font-display font-bold text-foreground">
+            <div className="flex-1 flex flex-col items-center justify-center text-center">
+              <div className="flex items-center gap-2 mb-2">
+                <h2 className="text-3xl sm:text-4xl font-display font-bold text-foreground">
                   {word}
                 </h2>
                 <Button
@@ -69,12 +69,12 @@ const Flashcard = ({
               </div>
               
               {ipa && (
-                <span className="font-mono text-sm text-muted-foreground mb-4">
+                <span className="font-mono text-sm text-muted-foreground mb-3">
                   {ipa}
                 </span>
               )}
               
-              <div className="flex flex-wrap justify-center gap-2">
+              <div className="flex flex-wrap justify-center gap-1.5">
                 {pos.map((p, i) => (
                   <Badge
                     key={i}
@@ -89,7 +89,7 @@ const Flashcard = ({
             <Button
               onClick={handleFlip}
               size="lg"
-              className="w-full h-14 bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90 transition-opacity text-base font-medium"
+              className="w-full h-12 bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90 transition-opacity text-base font-medium"
             >
               <Eye className="w-5 h-5 mr-2" />
               Show Answer
