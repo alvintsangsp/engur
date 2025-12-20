@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
-import { Brain, PartyPopper, RefreshCw, Loader2 } from "lucide-react";
+import { PartyPopper, RefreshCw, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import Navigation from "@/components/Navigation";
+import BottomNav from "@/components/BottomNav";
 import Flashcard from "@/components/Flashcard";
 
 interface Example {
@@ -14,6 +14,7 @@ interface Example {
 interface VocabCard {
   id: string;
   word: string;
+  ipa?: string;
   definitions: string[];
   pos: string[];
   pinyin: string[];
@@ -149,30 +150,25 @@ const Revision = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-soft">
-      <Navigation />
-
-      <main className="container max-w-2xl mx-auto px-4 pt-24 pb-12">
+    <div className="min-h-screen bg-gradient-soft pb-20">
+      <main className="w-full px-4 pt-6 pb-8 max-w-lg mx-auto">
         {/* Header */}
-        <div className="text-center mb-10 animate-fade-in">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-primary shadow-glow mb-6">
-            <Brain className="w-8 h-8 text-primary-foreground" />
-          </div>
-          <h1 className="text-4xl font-display font-bold text-foreground mb-3">
-            Revision
+        <div className="text-center mb-6 animate-fade-in">
+          <h1 className="text-2xl font-display font-bold text-foreground mb-1">
+            Review
           </h1>
-          <p className="text-lg text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             {cardsRemaining > 0
-              ? `${cardsRemaining} card${cardsRemaining !== 1 ? "s" : ""} due for review`
-              : "Practice your vocabulary with spaced repetition"}
+              ? `${cardsRemaining} card${cardsRemaining !== 1 ? "s" : ""} due`
+              : "Practice your vocabulary"}
           </p>
         </div>
 
         {/* Loading State */}
         {isLoading && (
-          <div className="flex flex-col items-center justify-center py-20 animate-pulse-soft">
-            <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
-            <p className="text-muted-foreground">Loading your cards...</p>
+          <div className="flex flex-col items-center justify-center py-16 animate-pulse-soft">
+            <Loader2 className="w-10 h-10 text-primary animate-spin mb-3" />
+            <p className="text-sm text-muted-foreground">Loading cards...</p>
           </div>
         )}
 
@@ -181,6 +177,7 @@ const Revision = () => {
           <div className="animate-scale-in">
             <Flashcard
               word={currentCard.word}
+              ipa={currentCard.ipa}
               definitions={currentCard.definitions}
               pos={currentCard.pos}
               pinyin={currentCard.pinyin}
@@ -193,21 +190,20 @@ const Revision = () => {
 
         {/* Empty State */}
         {!isLoading && !currentCard && (
-          <div className="text-center py-20 animate-fade-in">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-success/10 mb-6">
-              <PartyPopper className="w-10 h-10 text-success" />
+          <div className="text-center py-12 animate-fade-in">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-success/10 mb-4">
+              <PartyPopper className="w-8 h-8 text-success" />
             </div>
-            <h2 className="text-2xl font-display font-bold text-foreground mb-3">
+            <h2 className="text-xl font-display font-bold text-foreground mb-2">
               All caught up!
             </h2>
-            <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-              You've reviewed all your due cards. Add more words from the Lookup page,
-              or check back later for more practice.
+            <p className="text-sm text-muted-foreground mb-5 max-w-xs mx-auto">
+              You've reviewed all your due cards. Add more words or check back later.
             </p>
             <Button
               onClick={fetchNextCard}
               variant="outline"
-              className="gap-2"
+              className="h-12 w-full gap-2"
             >
               <RefreshCw className="w-4 h-4" />
               Check again
@@ -215,6 +211,8 @@ const Revision = () => {
           </div>
         )}
       </main>
+
+      <BottomNav />
     </div>
   );
 };
