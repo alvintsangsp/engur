@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Eye, RotateCcw, ThumbsUp, Sparkles, Volume2 } from "lucide-react";
 import AudioPlayer from "./AudioPlayer";
 import { useSpeech } from "@/hooks/use-speech";
+import { useSwipe } from "@/hooks/use-swipe";
 
 interface Example {
   en: string;
@@ -43,9 +44,65 @@ const Flashcard = ({
     setIsFlipped(false);
   };
 
+  const swipeHandlers = useMemo(
+    () => ({
+      onSwipeLeft: () => !isUpdating && handleRate("again"),
+      onSwipeRight: () => !isUpdating && handleRate("good"),
+      onSwipeUp: () => !isUpdating && handleRate("easy"),
+    }),
+    [isUpdating]
+  );
+
+  const { swipeState, handlers: touchHandlers } = useSwipe(
+    swipeHandlers,
+    isFlipped && !isUpdating
+  );
+
+  // Calculate visual feedback based on swipe
+  const getSwipeStyle = () => {
+    if (!isFlipped) return {};
+    
+    const { offsetX, offsetY, direction } = swipeState;
+    const rotation = offsetX * 0.05;
+    
+    return {
+      transform: `translate(${offsetX * 0.5}px, ${Math.min(offsetY * 0.3, 0)}px) rotate(${rotation}deg)`,
+      transition: offsetX === 0 && offsetY === 0 ? "transform 0.3s ease-out" : "none",
+    };
+  };
+
+  const getSwipeIndicator = () => {
+    const { direction, offsetX, offsetY } = swipeState;
+    const threshold = 80;
+    
+    if (Math.abs(offsetX) > threshold / 2 || offsetY < -threshold / 2) {
+      if (offsetX > threshold / 2) {
+        return { text: "Good", color: "bg-success text-success-foreground" };
+      } else if (offsetX < -threshold / 2) {
+        return { text: "Again", color: "bg-destructive text-destructive-foreground" };
+      } else if (offsetY < -threshold / 2) {
+        return { text: "Easy", color: "bg-warning text-warning-foreground" };
+      }
+    }
+    return null;
+  };
+
+  const indicator = getSwipeIndicator();
+
   return (
     <div className="w-full flex justify-center">
-      <div className="flashcard">
+      <div 
+        className="flashcard relative"
+        style={getSwipeStyle()}
+        {...touchHandlers}
+      >
+        {/* Swipe indicator overlay */}
+        {indicator && isFlipped && (
+          <div className={`absolute top-4 left-1/2 -translate-x-1/2 z-10 px-4 py-2 rounded-full font-semibold text-sm ${indicator.color} animate-scale-in`}>
+            {indicator.text}
+          </div>
+        )}
+        
         <div className={`flashcard-inner ${isFlipped ? "flipped" : ""}`}>
           {/* Front of card */}
           <div className="flashcard-face flashcard-front border border-border">
@@ -144,33 +201,42 @@ const Flashcard = ({
 
             {/* Rating buttons */}
             <div className="grid grid-cols-3 gap-2 pt-3">
-              <Button
-                onClick={() => handleRate("again")}
-                disabled={isUpdating}
-                variant="outline"
-                className="h-12 border-destructive text-destructive hover:bg-destructive/10 text-sm font-medium"
-              >
-                <RotateCcw className="w-4 h-4 mr-1" />
-                Again
-              </Button>
-              <Button
-                onClick={() => handleRate("good")}
-                disabled={isUpdating}
-                variant="outline"
-                className="h-12 border-success text-success hover:bg-success/10 text-sm font-medium"
-              >
-                <ThumbsUp className="w-4 h-4 mr-1" />
-                Good
-              </Button>
-              <Button
-                onClick={() => handleRate("easy")}
-                disabled={isUpdating}
-                variant="outline"
-                className="h-12 border-warning text-warning hover:bg-warning/10 text-sm font-medium"
-              >
-                <Sparkles className="w-4 h-4 mr-1" />
-                Easy
-              </Button>
+              <div className="text-center">
+                <Button
+                  onClick={() => handleRate("again")}
+                  disabled={isUpdating}
+                  variant="outline"
+                  className="h-12 w-full border-destructive text-destructive hover:bg-destructive/10 text-sm font-medium"
+                >
+                  <RotateCcw className="w-4 h-4 mr-1" />
+                  Again
+                </Button>
+                <span className="text-[10px] text-muted-foreground mt-1 block">← swipe</span>
+              </div>
+              <div className="text-center">
+                <Button
+                  onClick={() => handleRate("good")}
+                  disabled={isUpdating}
+                  variant="outline"
+                  className="h-12 w-full border-success text-success hover:bg-success/10 text-sm font-medium"
+                >
+                  <ThumbsUp className="w-4 h-4 mr-1" />
+                  Good
+                </Button>
+                <span className="text-[10px] text-muted-foreground mt-1 block">swipe →</span>
+              </div>
+              <div className="text-center">
+                <Button
+                  onClick={() => handleRate("easy")}
+                  disabled={isUpdating}
+                  variant="outline"
+                  className="h-12 w-full border-warning text-warning hover:bg-warning/10 text-sm font-medium"
+                >
+                  <Sparkles className="w-4 h-4 mr-1" />
+                  Easy
+                </Button>
+                <span className="text-[10px] text-muted-foreground mt-1 block">↑ swipe</span>
+              </div>
             </div>
           </div>
         </div>
