@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Loader2, Trash2, BookOpen, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
+import { useSpeech } from "@/hooks/use-speech";
 
 interface VocabWord {
   id: string;
@@ -19,20 +20,8 @@ const Deck = () => {
   const [words, setWords] = useState<VocabWord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [speakingId, setSpeakingId] = useState<string | null>(null);
   const { toast } = useToast();
-
-  const speakWord = useCallback((id: string, word: string) => {
-    if ("speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(word);
-      utterance.lang = "en-US";
-      utterance.onstart = () => setSpeakingId(id);
-      utterance.onend = () => setSpeakingId(null);
-      utterance.onerror = () => setSpeakingId(null);
-      window.speechSynthesis.speak(utterance);
-    }
-  }, []);
+  const { speak, speakingWord } = useSpeech();
 
   const fetchWords = async () => {
     setIsLoading(true);
@@ -124,9 +113,9 @@ const Deck = () => {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className={`h-8 w-8 p-0 ${speakingId === item.id ? "text-primary animate-pulse-soft" : "text-muted-foreground hover:text-primary"}`}
-                        onClick={() => speakWord(item.id, item.word)}
-                        disabled={speakingId === item.id}
+                        className={`h-8 w-8 p-0 ${speakingWord === item.id ? "text-primary animate-pulse-soft" : "text-muted-foreground hover:text-primary"}`}
+                        onClick={() => speak(item.word, item.id)}
+                        disabled={speakingWord === item.id}
                       >
                         <Volume2 className="w-4 h-4" />
                       </Button>

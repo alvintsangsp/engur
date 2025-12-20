@@ -1,8 +1,9 @@
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Eye, RotateCcw, ThumbsUp, Sparkles, Volume2 } from "lucide-react";
 import AudioPlayer from "./AudioPlayer";
+import { useSpeech } from "@/hooks/use-speech";
 
 interface Example {
   en: string;
@@ -31,19 +32,7 @@ const Flashcard = ({
   isUpdating,
 }: FlashcardProps) => {
   const [isFlipped, setIsFlipped] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-
-  const speakWord = useCallback(() => {
-    if ("speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(word);
-      utterance.lang = "en-US";
-      utterance.onstart = () => setIsSpeaking(true);
-      utterance.onend = () => setIsSpeaking(false);
-      utterance.onerror = () => setIsSpeaking(false);
-      window.speechSynthesis.speak(utterance);
-    }
-  }, [word]);
+  const { speak, isSpeaking } = useSpeech();
 
   const handleFlip = () => {
     setIsFlipped(true);
@@ -71,7 +60,7 @@ const Flashcard = ({
                   className={`h-10 w-10 p-0 ${isSpeaking ? "text-primary animate-pulse" : "text-muted-foreground hover:text-primary"}`}
                   onClick={(e) => {
                     e.stopPropagation();
-                    speakWord();
+                    speak(word);
                   }}
                   disabled={isSpeaking}
                 >
