@@ -1,8 +1,9 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookPlus, Languages, Quote, GitBranch } from "lucide-react";
+import { BookPlus, Languages, Quote, GitBranch, Volume2 } from "lucide-react";
 import AudioPlayer from "./AudioPlayer";
+import { useSpeech } from "@/hooks/use-speech";
 
 interface WordFamily {
   verb?: string;
@@ -41,6 +42,7 @@ const VocabResult = ({
   isSaving,
   onLookupWord,
 }: VocabResultProps) => {
+  const { speak, speakingWord } = useSpeech();
   const wordFamilyEntries = wordFamily 
     ? Object.entries(wordFamily).filter(([_, value]) => value) 
     : [];
@@ -124,15 +126,31 @@ const VocabResult = ({
             </div>
             <div className="flex flex-wrap gap-2">
               {wordFamilyEntries.map(([posLabel, wordForm], i) => (
-                <button
+                <div
                   key={posLabel}
-                  onClick={() => onLookupWord?.(wordForm as string)}
-                  className="flex flex-col items-start p-3 rounded-xl border border-border bg-card hover:bg-secondary/50 hover:border-primary/30 transition-colors animate-fade-in cursor-pointer"
+                  className="flex items-center gap-1 p-3 rounded-xl border border-border bg-card animate-fade-in"
                   style={{ animationDelay: `${i * 50}ms` }}
                 >
-                  <span className="text-xs text-muted-foreground capitalize">{posLabel}</span>
-                  <span className="font-semibold text-foreground">{wordForm as string}</span>
-                </button>
+                  <button
+                    onClick={() => onLookupWord?.(wordForm as string)}
+                    className="flex flex-col items-start hover:text-primary transition-colors cursor-pointer"
+                  >
+                    <span className="text-xs text-muted-foreground capitalize">{posLabel}</span>
+                    <span className="font-semibold text-foreground">{wordForm as string}</span>
+                  </button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={`h-7 w-7 p-0 ml-1 ${speakingWord === `form-${posLabel}` ? "text-primary animate-pulse" : "text-muted-foreground hover:text-primary"}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      speak(wordForm as string, `form-${posLabel}`);
+                    }}
+                    disabled={speakingWord === `form-${posLabel}`}
+                  >
+                    <Volume2 className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
               ))}
             </div>
           </div>

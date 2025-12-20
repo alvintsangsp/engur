@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Volume2, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,6 +9,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+const PREFERRED_VOICES = [
+  "Google US English",
+  "Samantha",
+  "Microsoft Zira",
+  "Alex",
+  "Daniel",
+];
+
 interface AudioPlayerProps {
   word: string;
   ipa?: string;
@@ -16,17 +24,58 @@ interface AudioPlayerProps {
 }
 
 const AudioPlayer = ({ word, ipa, compact = false }: AudioPlayerProps) => {
-  const [speed, setSpeed] = useState("1");
+  const [speed, setSpeed] = useState("0.9");
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const voiceRef = useRef<SpeechSynthesisVoice | null>(null);
+
+  const findBestVoice = useCallback(() => {
+    if (!("speechSynthesis" in window)) return null;
+    
+    const voices = window.speechSynthesis.getVoices();
+    if (voices.length === 0) return null;
+
+    for (const preferred of PREFERRED_VOICES) {
+      const voice = voices.find((v) =>
+        v.name.toLowerCase().includes(preferred.toLowerCase())
+      );
+      if (voice) return voice;
+    }
+
+    const englishVoice = voices.find(
+      (v) => v.lang.startsWith("en-US") || v.lang.startsWith("en-GB")
+    );
+    if (englishVoice) return englishVoice;
+
+    return voices.find((v) => v.lang.startsWith("en")) || voices[0];
+  }, []);
+
+  useEffect(() => {
+    if (!("speechSynthesis" in window)) return;
+
+    const loadVoices = () => {
+      voiceRef.current = findBestVoice();
+    };
+
+    loadVoices();
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+
+    return () => {
+      window.speechSynthesis.onvoiceschanged = null;
+    };
+  }, [findBestVoice]);
 
   const speak = useCallback(() => {
     if ("speechSynthesis" in window) {
-      // Cancel any ongoing speech
       window.speechSynthesis.cancel();
 
       const utterance = new SpeechSynthesisUtterance(word);
       utterance.rate = parseFloat(speed);
+      utterance.pitch = 1.0;
       utterance.lang = "en-US";
+
+      if (voiceRef.current) {
+        utterance.voice = voiceRef.current;
+      }
 
       utterance.onstart = () => setIsSpeaking(true);
       utterance.onend = () => setIsSpeaking(false);
