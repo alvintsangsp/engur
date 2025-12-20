@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Loader2, Trash2, BookOpen } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Loader2, Trash2, BookOpen, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -19,7 +19,20 @@ const Deck = () => {
   const [words, setWords] = useState<VocabWord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [speakingId, setSpeakingId] = useState<string | null>(null);
   const { toast } = useToast();
+
+  const speakWord = useCallback((id: string, word: string) => {
+    if ("speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(word);
+      utterance.lang = "en-US";
+      utterance.onstart = () => setSpeakingId(id);
+      utterance.onend = () => setSpeakingId(null);
+      utterance.onerror = () => setSpeakingId(null);
+      window.speechSynthesis.speak(utterance);
+    }
+  }, []);
 
   const fetchWords = async () => {
     setIsLoading(true);
@@ -104,9 +117,20 @@ const Deck = () => {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-lg font-display font-semibold text-foreground mb-1">
-                      {item.word}
-                    </h3>
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="text-lg font-display font-semibold text-foreground">
+                        {item.word}
+                      </h3>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className={`h-8 w-8 p-0 ${speakingId === item.id ? "text-primary animate-pulse-soft" : "text-muted-foreground hover:text-primary"}`}
+                        onClick={() => speakWord(item.id, item.word)}
+                        disabled={speakingId === item.id}
+                      >
+                        <Volume2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                     <div className="flex flex-wrap gap-1 mb-2">
                       {item.pos.map((p, i) => (
                         <Badge

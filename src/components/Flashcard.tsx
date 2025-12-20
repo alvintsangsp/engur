@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Eye, RotateCcw, ThumbsUp, Sparkles } from "lucide-react";
+import { Eye, RotateCcw, ThumbsUp, Sparkles, Volume2 } from "lucide-react";
 import AudioPlayer from "./AudioPlayer";
 
 interface Example {
@@ -31,6 +31,19 @@ const Flashcard = ({
   isUpdating,
 }: FlashcardProps) => {
   const [isFlipped, setIsFlipped] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+
+  const speakWord = useCallback(() => {
+    if ("speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(word);
+      utterance.lang = "en-US";
+      utterance.onstart = () => setIsSpeaking(true);
+      utterance.onend = () => setIsSpeaking(false);
+      utterance.onerror = () => setIsSpeaking(false);
+      window.speechSynthesis.speak(utterance);
+    }
+  }, [word]);
 
   const handleFlip = () => {
     setIsFlipped(true);
@@ -48,13 +61,31 @@ const Flashcard = ({
           {/* Front of card */}
           <div className="flashcard-face flashcard-front border border-border">
             <div className="flex-1 flex flex-col items-center justify-center text-center px-4">
-              <h2 className="text-3xl sm:text-5xl font-display font-bold text-foreground mb-3">
-                {word}
-              </h2>
+              <div className="flex items-center gap-2 mb-3">
+                <h2 className="text-3xl sm:text-5xl font-display font-bold text-foreground">
+                  {word}
+                </h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={`h-10 w-10 p-0 ${isSpeaking ? "text-primary animate-pulse" : "text-muted-foreground hover:text-primary"}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    speakWord();
+                  }}
+                  disabled={isSpeaking}
+                >
+                  <Volume2 className="w-5 h-5" />
+                </Button>
+              </div>
               
-              <AudioPlayer word={word} ipa={ipa} compact />
+              {ipa && (
+                <span className="font-mono text-sm text-muted-foreground mb-4">
+                  {ipa}
+                </span>
+              )}
               
-              <div className="flex flex-wrap justify-center gap-2 mt-4">
+              <div className="flex flex-wrap justify-center gap-2">
                 {pos.map((p, i) => (
                   <Badge
                     key={i}
