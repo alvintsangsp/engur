@@ -1,8 +1,15 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookPlus, Languages, Quote } from "lucide-react";
+import { BookPlus, Languages, Quote, GitBranch } from "lucide-react";
 import AudioPlayer from "./AudioPlayer";
+
+interface WordFamily {
+  verb?: string;
+  noun?: string;
+  adjective?: string;
+  adverb?: string;
+}
 
 interface Example {
   en: string;
@@ -16,8 +23,10 @@ interface VocabResultProps {
   pos: string[];
   pinyin: string[];
   examples: Example[];
+  wordFamily?: WordFamily;
   onSave: () => void;
   isSaving: boolean;
+  onLookupWord?: (word: string) => void;
 }
 
 const VocabResult = ({
@@ -27,9 +36,14 @@ const VocabResult = ({
   pos,
   pinyin,
   examples,
+  wordFamily,
   onSave,
   isSaving,
+  onLookupWord,
 }: VocabResultProps) => {
+  const wordFamilyEntries = wordFamily 
+    ? Object.entries(wordFamily).filter(([_, value]) => value) 
+    : [];
   return (
     <Card className="animate-slide-up shadow-elevated border-0 bg-card overflow-hidden">
       <div className="h-1.5 bg-gradient-primary" />
@@ -98,6 +112,31 @@ const VocabResult = ({
             ))}
           </div>
         </div>
+
+        {/* Word Forms */}
+        {wordFamilyEntries.length > 0 && (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <GitBranch className="w-4 h-4" />
+              <span className="text-xs font-medium uppercase tracking-wide">
+                Word Forms
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {wordFamilyEntries.map(([posLabel, wordForm], i) => (
+                <button
+                  key={posLabel}
+                  onClick={() => onLookupWord?.(wordForm as string)}
+                  className="flex flex-col items-start p-3 rounded-xl border border-border bg-card hover:bg-secondary/50 hover:border-primary/30 transition-colors animate-fade-in cursor-pointer"
+                  style={{ animationDelay: `${i * 50}ms` }}
+                >
+                  <span className="text-xs text-muted-foreground capitalize">{posLabel}</span>
+                  <span className="font-semibold text-foreground">{wordForm as string}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Examples */}
         {examples.length > 0 && (

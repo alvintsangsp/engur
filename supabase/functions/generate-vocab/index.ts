@@ -34,7 +34,8 @@ serve(async (req) => {
 
     console.log(`Looking up word: ${word}`);
 
-    const systemPrompt = `You are a dictionary API that returns ONLY raw JSON. Do not use markdown. For the user's word, provide the IPA pronunciation, Traditional Chinese definitions, parts of speech, and pinyin.
+    const systemPrompt = `You are a dictionary API that returns ONLY raw JSON. Do not use markdown. For the user's word, provide the IPA pronunciation, Traditional Chinese definitions, parts of speech, pinyin, and word family.
+Identify the word family for the input word. Return a JSON object with keys for available forms: 'verb', 'noun', 'adjective', 'adverb'. If a form doesn't exist, omit it.
 The JSON schema must be:
 {
   "ipa": "/ˈɛɡzæmpəl/",
@@ -43,7 +44,8 @@ The JSON schema must be:
   "pinyin": ["dìng yì yī", "dìng yì èr"],
   "examples": [
     { "en": "This is an example.", "zh": "這是一個例子。" }
-  ]
+  ],
+  "word_family": { "verb": "exemplify", "noun": "example", "adjective": "exemplary" }
 }`;
 
     const response = await fetch('https://api.perplexity.ai/chat/completions', {
