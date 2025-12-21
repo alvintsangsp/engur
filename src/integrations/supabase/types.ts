@@ -46,6 +46,7 @@ export type Database = {
           examples: Json | null
           id: string
           interval_days: number | null
+          is_learned: boolean | null
           next_review_at: string | null
           pinyin: string[]
           pos: string[]
@@ -58,6 +59,7 @@ export type Database = {
           examples?: Json | null
           id?: string
           interval_days?: number | null
+          is_learned?: boolean | null
           next_review_at?: string | null
           pinyin?: string[]
           pos?: string[]
@@ -70,6 +72,7 @@ export type Database = {
           examples?: Json | null
           id?: string
           interval_days?: number | null
+          is_learned?: boolean | null
           next_review_at?: string | null
           pinyin?: string[]
           pos?: string[]

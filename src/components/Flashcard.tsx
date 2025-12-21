@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Eye, RotateCcw, ThumbsUp, Sparkles, Volume2 } from "lucide-react";
+import { Eye, RotateCcw, ThumbsUp, Volume2 } from "lucide-react";
 import AudioPlayer from "./AudioPlayer";
 import { useSpeech } from "@/hooks/use-speech";
 import { useSwipe } from "@/hooks/use-swipe";
@@ -18,7 +18,7 @@ interface FlashcardProps {
   pos: string[];
   pinyin: string[];
   examples: Example[];
-  onRate: (rating: "again" | "good" | "easy") => void;
+  onRate: (rating: "again" | "good") => void;
   isUpdating: boolean;
 }
 
@@ -46,9 +46,8 @@ const Flashcard = ({
 
   const swipeHandlers = useMemo(
     () => ({
-      onSwipeLeft: () => !isUpdating && handleRate("again"),
-      onSwipeRight: () => !isUpdating && handleRate("good"),
-      onSwipeUp: () => !isUpdating && handleRate("easy"),
+      onSwipeLeft: () => !isUpdating && handleRate("good"),
+      onSwipeRight: () => !isUpdating && handleRate("again"),
     }),
     [isUpdating]
   );
@@ -75,13 +74,11 @@ const Flashcard = ({
     const { direction, offsetX, offsetY } = swipeState;
     const threshold = 80;
     
-    if (Math.abs(offsetX) > threshold / 2 || offsetY < -threshold / 2) {
+    if (Math.abs(offsetX) > threshold / 2) {
       if (offsetX > threshold / 2) {
-        return { text: "Good", color: "bg-success text-success-foreground" };
+        return { text: "Next", color: "bg-destructive text-destructive-foreground" };
       } else if (offsetX < -threshold / 2) {
-        return { text: "Again", color: "bg-destructive text-destructive-foreground" };
-      } else if (offsetY < -threshold / 2) {
-        return { text: "Easy", color: "bg-warning text-warning-foreground" };
+        return { text: "Done", color: "bg-success text-success-foreground" };
       }
     }
     return null;
@@ -200,20 +197,8 @@ const Flashcard = ({
             </div>
 
             {/* Rating buttons */}
-            <div className="grid grid-cols-3 gap-2 pt-3">
-              <div className="text-center">
-                <Button
-                  onClick={() => handleRate("again")}
-                  disabled={isUpdating}
-                  variant="outline"
-                  className="h-12 w-full border-destructive text-destructive hover:bg-destructive/10 text-sm font-medium"
-                >
-                  <RotateCcw className="w-4 h-4 mr-1" />
-                  Again
-                </Button>
-                <span className="text-[10px] text-muted-foreground mt-1 block">← swipe</span>
-              </div>
-              <div className="text-center">
+            <div className="flex justify-center gap-2 pt-3">
+              <div className="text-center flex-1 max-w-[200px]">
                 <Button
                   onClick={() => handleRate("good")}
                   disabled={isUpdating}
@@ -221,21 +206,21 @@ const Flashcard = ({
                   className="h-12 w-full border-success text-success hover:bg-success/10 text-sm font-medium"
                 >
                   <ThumbsUp className="w-4 h-4 mr-1" />
-                  Good
+                  Done
                 </Button>
-                <span className="text-[10px] text-muted-foreground mt-1 block">swipe →</span>
+                <span className="text-[10px] text-muted-foreground mt-1 block">← swipe</span>
               </div>
-              <div className="text-center">
+              <div className="text-center flex-1 max-w-[200px]">
                 <Button
-                  onClick={() => handleRate("easy")}
+                  onClick={() => handleRate("again")}
                   disabled={isUpdating}
                   variant="outline"
-                  className="h-12 w-full border-warning text-warning hover:bg-warning/10 text-sm font-medium"
+                  className="h-12 w-full border-destructive text-destructive hover:bg-destructive/10 text-sm font-medium"
                 >
-                  <Sparkles className="w-4 h-4 mr-1" />
-                  Easy
+                  <RotateCcw className="w-4 h-4 mr-1" />
+                  Next
                 </Button>
-                <span className="text-[10px] text-muted-foreground mt-1 block">↑ swipe</span>
+                <span className="text-[10px] text-muted-foreground mt-1 block">swipe →</span>
               </div>
             </div>
           </div>

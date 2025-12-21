@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { PartyPopper, RefreshCw, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -28,29 +28,110 @@ const Revision = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
   const [cardsRemaining, setCardsRemaining] = useState(0);
+  const [againQueue, setAgainQueue] = useState<VocabCard[]>([]);
+  const againQueueRef = useRef<VocabCard[]>([]);
+  const seenCardIdsRef = useRef<Set<string>>(new Set());
   const { toast } = useToast();
 
   const fetchNextCard = useCallback(async () => {
     setIsLoading(true);
     try {
-      // Count remaining cards
-      const { count } = await supabase
+      // Note: Queue is no longer used for "Next" button
+      // It's only kept for removing cards when "Done" is pressed
+
+      // Build base query
+      let countQuery = supabase
         .from("vocabulary")
         .select("*", { count: "exact", head: true })
         .lte("next_review_at", new Date().toISOString());
+      
+      // Exclude all seen cards in this session
+      seenCardIdsRef.current.forEach((cardId) => {
+        countQuery = countQuery.neq("id", cardId);
+      });
 
-      setCardsRemaining(count || 0);
+      // Count remaining cards (excluding learned ones)
+      // Try with is_learned filter first, fallback if column doesn't exist
+      let count = 0;
+      try {
+        const countQueryWithFilter = countQuery.or("is_learned.is.null,is_learned.eq.false");
+        const { count: countResult, error: countError } = await countQueryWithFilter;
+        
+        if (!countError) {
+          count = countResult || 0;
+        } else {
+          // Column might not exist, try without filter
+          const { count: fallbackCount } = await countQuery;
+          count = fallbackCount || 0;
+        }
+      } catch {
+        // If query fails, try without is_learned filter
+        const { count: fallbackCount } = await countQuery;
+        count = fallbackCount || 0;
+      }
 
-      // Fetch one card that's due for review
-      const { data, error } = await supabase
+      setCardsRemaining(count + againQueueRef.current.length);
+
+      // Fetch cards that are due for review and not learned
+      // Fetch multiple to filter out seen ones client-side
+      let data = null;
+      let error = null;
+      
+      // Build data query - fetch more cards to filter out seen ones
+      let dataQuery = supabase
         .from("vocabulary")
         .select("*")
-        .lte("next_review_at", new Date().toISOString())
+        .lte("next_review_at", new Date().toISOString());
+      
+      // Exclude all seen cards in this session
+      seenCardIdsRef.current.forEach((cardId) => {
+        dataQuery = dataQuery.neq("id", cardId);
+      });
+      
+      // Try with is_learned filter first - fetch up to 10 cards
+      const result = await dataQuery
+        .or("is_learned.is.null,is_learned.eq.false")
         .order("next_review_at", { ascending: true })
-        .limit(1)
-        .single();
+        .limit(10);
+      
+      data = result.data;
+      error = result.error;
+      
+      // If error occurs (likely column doesn't exist), try without filter
+      if (error) {
+        let fallbackQuery = supabase
+          .from("vocabulary")
+          .select("*")
+          .lte("next_review_at", new Date().toISOString());
+        
+        // Exclude all seen cards
+        seenCardIdsRef.current.forEach((cardId) => {
+          fallbackQuery = fallbackQuery.neq("id", cardId);
+        });
+        
+        const fallbackResult = await fallbackQuery
+          .order("next_review_at", { ascending: true })
+          .limit(10);
+        
+        data = fallbackResult.data;
+        error = fallbackResult.error;
+      }
+      
+      // Filter out any seen cards (in case they slipped through) and pick first
+      let cardData = null;
+      if (data && Array.isArray(data) && data.length > 0) {
+        const unseenCards = data.filter((card) => !seenCardIdsRef.current.has(card.id));
+        cardData = unseenCards.length > 0 ? unseenCards[0] : null;
+      } else if (data && !Array.isArray(data)) {
+        // Single result case (shouldn't happen with limit 10, but handle it)
+        if (!seenCardIdsRef.current.has(data.id)) {
+          cardData = data;
+        }
+      }
+      
+      data = cardData;
 
-      if (error && error.code !== "PGRST116") {
+      if (error) {
         throw error;
       }
 
@@ -64,7 +145,7 @@ const Revision = () => {
             })
           : [];
 
-        setCurrentCard({
+        const newCard = {
           id: data.id,
           word: data.word,
           definitions: data.definitions || [],
@@ -73,7 +154,9 @@ const Revision = () => {
           examples,
           interval_days: data.interval_days || 1,
           ease_factor: data.ease_factor || 2.5,
-        });
+        };
+        
+        setCurrentCard(newCard);
       } else {
         setCurrentCard(null);
       }
@@ -93,50 +176,61 @@ const Revision = () => {
     fetchNextCard();
   }, [fetchNextCard]);
 
-  const handleRate = async (rating: "again" | "good" | "easy") => {
+  const handleRate = async (rating: "again" | "good") => {
     if (!currentCard) return;
 
     setIsUpdating(true);
 
     try {
-      // SM-2 algorithm calculations
-      let newInterval: number;
-      let newEaseFactor = currentCard.ease_factor;
+      // Add current card to seen set before fetching next
+      // This ensures it won't appear again in this session
+      seenCardIdsRef.current.add(currentCard.id);
+      
+      if (rating === "again") {
+        // "Next" button: Skip to next card without any changes
+        // Don't update database, don't add to queue
+        // Card remains in database with original scheduling for future sessions
+        // Card is already added to seen set above
+        await fetchNextCard();
+      } else if (rating === "good") {
+        // "Done" button: Mark as learned and remove from future reviews
+        const { error } = await supabase
+          .from("vocabulary")
+          .update({
+            is_learned: true,
+          })
+          .eq("id", currentCard.id);
 
-      switch (rating) {
-        case "again":
-          newInterval = 1;
-          newEaseFactor = Math.max(1.3, currentCard.ease_factor - 0.2);
-          break;
-        case "good":
-          newInterval = currentCard.interval_days * currentCard.ease_factor;
-          break;
-        case "easy":
-          newInterval = currentCard.interval_days * currentCard.ease_factor * 1.5;
-          newEaseFactor = Math.min(2.8, currentCard.ease_factor + 0.1);
-          break;
+        if (error) {
+          // If column doesn't exist (migration not run), skip update and continue
+          // This allows the app to work even without the migration
+          const errorMessage = error.message || "";
+          const errorCode = error.code || "";
+          
+          // Check if error is related to missing column
+          const isColumnError = 
+            errorMessage.includes("is_learned") || 
+            errorMessage.includes("column") || 
+            errorMessage.includes("does not exist") ||
+            errorMessage.includes("unknown column") ||
+            errorCode.includes("42703"); // PostgreSQL error code for undefined column
+          
+          if (isColumnError) {
+            console.warn("is_learned column not found, skipping update. Please run migration:", errorMessage);
+            // Continue without updating - just fetch next card
+          } else {
+            // Other errors should be thrown
+            throw error;
+          }
+        }
+
+        // Remove from againQueue if present
+        againQueueRef.current = againQueueRef.current.filter((card) => card.id !== currentCard.id);
+        setAgainQueue(againQueueRef.current);
+
+        // Fetch next card (current card already added to seen set above)
+        await fetchNextCard();
       }
-
-      // Calculate next review date
-      const nextReviewAt = new Date();
-      nextReviewAt.setDate(nextReviewAt.getDate() + Math.ceil(newInterval));
-
-      // Update the card in the database
-      const { error } = await supabase
-        .from("vocabulary")
-        .update({
-          next_review_at: nextReviewAt.toISOString(),
-          interval_days: newInterval,
-          ease_factor: newEaseFactor,
-        })
-        .eq("id", currentCard.id);
-
-      if (error) {
-        throw error;
-      }
-
-      // Fetch next card
-      await fetchNextCard();
     } catch (error) {
       console.error("Error updating card:", error);
       toast({
@@ -195,10 +289,10 @@ const Revision = () => {
               <PartyPopper className="w-8 h-8 text-success" />
             </div>
             <h2 className="text-xl font-display font-bold text-foreground mb-2">
-              All caught up!
+              All cards done for now
             </h2>
             <p className="text-sm text-muted-foreground mb-5 max-w-xs mx-auto">
-              You've reviewed all your due cards. Add more words or check back later.
+              Great job! You've completed all your due cards. Add more words or check back later.
             </p>
             <Button
               onClick={fetchNextCard}

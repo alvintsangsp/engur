@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Loader2, X, Clock, RefreshCw } from "lucide-react";
+import { Search, Loader2, X, Clock, RefreshCw, BookPlus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -152,13 +152,8 @@ const Lookup = () => {
       }
 
       toast({
-        title: "Word saved!",
-        description: `"${word}" has been added to your deck.`,
+        title: "Saved to Deck",
       });
-
-      // Clear the form
-      setWord("");
-      setResult(null);
     } catch (error) {
       console.error("Save error:", error);
       toast({
@@ -189,13 +184,31 @@ const Lookup = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-soft pb-20">
+    <div className="min-h-screen bg-gradient-soft pb-32">
       <main className="w-full px-4 pt-6 pb-8 max-w-lg mx-auto">
         {/* Header */}
         <div className="text-center mb-6 animate-fade-in">
-          <h1 className="text-2xl font-display font-bold text-foreground mb-1">
-            Look Up Word
-          </h1>
+          <div className="flex items-center justify-center gap-3 mb-1">
+            <img 
+              src="/logo.png" 
+              alt="Engur Logo" 
+              className="h-6 w-6 sm:h-7 sm:w-7 object-contain"
+              onError={(e) => {
+                // Try alternative formats if logo.png doesn't exist
+                const target = e.target as HTMLImageElement;
+                if (target.src.endsWith('.png')) {
+                  target.src = '/logo.svg';
+                } else if (target.src.endsWith('.svg')) {
+                  target.src = '/logo.jpg';
+                } else {
+                  target.style.display = 'none';
+                }
+              }}
+            />
+            <h1 className="text-2xl font-display font-bold text-foreground">
+              Look Up Word
+            </h1>
+          </div>
           <p className="text-sm text-muted-foreground">
             Get Chinese translations & examples
           </p>
@@ -280,6 +293,7 @@ const Lookup = () => {
               onSave={handleSave}
               isSaving={isSaving}
               onLookupWord={lookupWord}
+              hideSaveButton={true}
             />
             
             {/* Refresh Button */}
@@ -344,6 +358,22 @@ const Lookup = () => {
           </div>
         )}
       </main>
+
+      {/* Fixed Save Button Bar */}
+      {result && !isLoading && (
+        <div className="fixed bottom-16 left-0 right-0 z-40 bg-card/95 backdrop-blur-lg border-t border-border px-4 py-3 safe-area-bottom">
+          <div className="max-w-lg mx-auto">
+            <Button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="w-full h-12 bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90 transition-opacity text-base font-medium"
+            >
+              <BookPlus className="w-5 h-5 mr-2" />
+              {isSaving ? "Saving..." : "Save to My Deck"}
+            </Button>
+          </div>
+        </div>
+      )}
 
       <BottomNav />
     </div>

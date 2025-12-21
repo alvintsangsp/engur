@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookPlus, Languages, Quote, GitBranch, Volume2 } from "lucide-react";
+import { Languages, Quote, GitBranch, Volume2 } from "lucide-react";
 import AudioPlayer from "./AudioPlayer";
 import { useSpeech } from "@/hooks/use-speech";
 
@@ -28,6 +28,7 @@ interface VocabResultProps {
   onSave: () => void;
   isSaving: boolean;
   onLookupWord?: (word: string) => void;
+  hideSaveButton?: boolean;
 }
 
 const VocabResult = ({
@@ -41,6 +42,7 @@ const VocabResult = ({
   onSave,
   isSaving,
   onLookupWord,
+  hideSaveButton = false,
 }: VocabResultProps) => {
   const { speak, speakingWord } = useSpeech();
   const wordFamilyEntries = wordFamily 
@@ -49,8 +51,11 @@ const VocabResult = ({
   return (
     <Card className="animate-slide-up shadow-elevated border-0 bg-card overflow-hidden">
       <div className="h-1.5 bg-gradient-primary" />
-      <CardHeader className="pb-3 px-4 sm:px-6">
-        <div className="space-y-3">
+      <CardHeader className="pb-3 px-4 sm:px-6 relative">
+        <div className="absolute top-4 right-4 sm:right-6">
+          <AudioPlayer word={word} ipa={ipa} />
+        </div>
+        <div className="space-y-3 pr-20">
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1 min-w-0">
               <CardTitle className="text-2xl sm:text-3xl font-display font-bold text-foreground mb-1">
@@ -69,52 +74,10 @@ const VocabResult = ({
               </div>
             </div>
           </div>
-          
-          <AudioPlayer word={word} ipa={ipa} />
-          
-          <Button
-            onClick={onSave}
-            disabled={isSaving}
-            className="w-full h-12 bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-90 transition-opacity text-base font-medium"
-          >
-            <BookPlus className="w-5 h-5 mr-2" />
-            {isSaving ? "Saving..." : "Save to My Deck"}
-          </Button>
         </div>
       </CardHeader>
 
       <CardContent className="space-y-5 px-4 sm:px-6 pb-6">
-        {/* Definitions */}
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <Languages className="w-4 h-4" />
-            <span className="text-xs font-medium uppercase tracking-wide">
-              Definitions
-            </span>
-          </div>
-          <div className="space-y-2">
-            {definitions.map((def, i) => (
-              <div
-                key={i}
-                className="flex items-start gap-3 p-3 rounded-xl bg-secondary/50 animate-fade-in"
-                style={{ animationDelay: `${i * 100}ms` }}
-              >
-                <span className="w-6 h-6 rounded-full bg-primary/20 text-primary text-sm font-semibold flex items-center justify-center flex-shrink-0">
-                  {i + 1}
-                </span>
-                <div>
-                  <p className="font-chinese text-base sm:text-lg text-foreground leading-relaxed">{def}</p>
-                  {pinyin[i] && (
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {pinyin[i]}
-                    </p>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
         {/* Word Forms */}
         {wordFamilyEntries.length > 0 && (
           <div className="space-y-2">
@@ -155,6 +118,37 @@ const VocabResult = ({
             </div>
           </div>
         )}
+
+        {/* Definitions */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Languages className="w-4 h-4" />
+            <span className="text-xs font-medium uppercase tracking-wide">
+              Definitions
+            </span>
+          </div>
+          <div className="space-y-2">
+            {definitions.map((def, i) => (
+              <div
+                key={i}
+                className="flex items-start gap-3 p-3 rounded-xl bg-secondary/50 animate-fade-in"
+                style={{ animationDelay: `${i * 100}ms` }}
+              >
+                <span className="w-6 h-6 rounded-full bg-primary/20 text-primary text-sm font-semibold flex items-center justify-center flex-shrink-0">
+                  {i + 1}
+                </span>
+                <div>
+                  <p className="font-chinese text-base sm:text-lg text-foreground leading-relaxed">{def}</p>
+                  {pinyin[i] && (
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {pinyin[i]}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
 
         {/* Examples */}
         {examples.length > 0 && (

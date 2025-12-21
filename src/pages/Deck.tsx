@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
 import { useSpeech } from "@/hooks/use-speech";
+import { useNavigate } from "react-router-dom";
 
 interface VocabWord {
   id: string;
@@ -22,6 +23,7 @@ const Deck = () => {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const { toast } = useToast();
   const { speak, speakingWord } = useSpeech();
+  const navigate = useNavigate();
 
   const fetchWords = async () => {
     setIsLoading(true);
@@ -29,7 +31,7 @@ const Deck = () => {
       const { data, error } = await supabase
         .from("vocabulary")
         .select("id, word, definitions, pos, created_at")
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: true });
 
       if (error) throw error;
       setWords(data || []);
@@ -101,56 +103,61 @@ const Deck = () => {
             {words.map((item, index) => (
               <Card
                 key={item.id}
-                className="p-4 border border-border shadow-card bg-card animate-slide-up"
+                className="relative p-4 border border-border shadow-card bg-card animate-slide-up cursor-pointer"
                 style={{ animationDelay: `${index * 50}ms` }}
+                onClick={() => navigate(`/word/${encodeURIComponent(item.word)}`)}
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="text-lg font-display font-semibold text-foreground">
-                        {item.word}
-                      </h3>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className={`h-8 w-8 p-0 ${speakingWord === item.id ? "text-primary animate-pulse-soft" : "text-muted-foreground hover:text-primary"}`}
-                        onClick={() => speak(item.word, item.id)}
-                        disabled={speakingWord === item.id}
-                      >
-                        <Volume2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                    <div className="flex flex-wrap gap-1 mb-2">
-                      {item.pos.map((p, i) => (
-                        <Badge
-                          key={i}
-                          variant="secondary"
-                          className="bg-primary/10 text-primary border-0 text-xs"
-                        >
-                          {p}
-                        </Badge>
-                      ))}
-                    </div>
-                    {item.definitions[0] && (
-                      <p className="font-chinese text-sm text-muted-foreground line-clamp-2">
-                        {item.definitions[0]}
-                      </p>
-                    )}
-                  </div>
+                <div className="flex items-start gap-2 mb-1">
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-muted-foreground hover:text-destructive h-10 w-10 p-0"
-                    onClick={() => handleDelete(item.id, item.word)}
-                    disabled={deletingId === item.id}
+                    className={`h-8 w-8 p-0 flex-shrink-0 ${speakingWord === item.id ? "text-primary animate-pulse-soft" : "text-muted-foreground hover:text-primary"}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      speak(item.word, item.id);
+                    }}
+                    disabled={speakingWord === item.id}
                   >
-                    {deletingId === item.id ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Trash2 className="w-4 h-4" />
-                    )}
+                    <Volume2 className="w-4 h-4" />
                   </Button>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-lg font-display font-semibold text-foreground">
+                      {item.word}
+                    </h3>
+                  </div>
                 </div>
+                <div className="flex flex-wrap gap-1 mb-2">
+                  {item.pos.map((p, i) => (
+                    <Badge
+                      key={i}
+                      variant="secondary"
+                      className="bg-primary/10 text-primary border-0 text-xs"
+                    >
+                      {p}
+                    </Badge>
+                  ))}
+                </div>
+                {item.definitions[0] && (
+                  <p className="font-chinese text-sm text-muted-foreground line-clamp-2 mb-3">
+                    {item.definitions[0]}
+                  </p>
+                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="absolute bottom-3 right-3 text-muted-foreground hover:text-destructive h-10 w-10 p-0"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDelete(item.id, item.word);
+                  }}
+                  disabled={deletingId === item.id}
+                >
+                  {deletingId === item.id ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="w-4 h-4" />
+                  )}
+                </Button>
               </Card>
             ))}
           </div>

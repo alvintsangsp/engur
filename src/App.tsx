@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Lookup from "./pages/Lookup";
 import Deck from "./pages/Deck";
 import Revision from "./pages/Revision";
+import WordDetail from "./pages/WordDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -20,6 +21,7 @@ const App = () => (
           <Route path="/" element={<Lookup />} />
           <Route path="/deck" element={<Deck />} />
           <Route path="/revision" element={<Revision />} />
+          <Route path="/word/:word" element={<WordDetail />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
