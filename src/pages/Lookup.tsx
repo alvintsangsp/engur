@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Search, Loader2 } from "lucide-react";
+import { Search, Loader2, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
@@ -20,12 +21,14 @@ interface WordFamily {
 }
 
 interface VocabData {
+  is_valid?: boolean;
   ipa?: string;
   definitions: string[];
   pos: string[];
   pinyin: string[];
   examples: Example[];
   word_family?: WordFamily;
+  suggestions?: string[];
 }
 
 const Lookup = () => {
@@ -33,6 +36,7 @@ const Lookup = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [result, setResult] = useState<VocabData | null>(null);
+  const [invalidWordData, setInvalidWordData] = useState<{ suggestions: string[] } | null>(null);
   const { toast } = useToast();
 
   const lookupWord = async (searchWord: string) => {
@@ -47,6 +51,7 @@ const Lookup = () => {
     setWord(searchWord.trim().toLowerCase());
     setIsLoading(true);
     setResult(null);
+    setInvalidWordData(null);
 
     try {
       const { data, error } = await supabase.functions.invoke("generate-vocab", {
@@ -57,7 +62,14 @@ const Lookup = () => {
         throw error;
       }
 
-      setResult(data);
+      // Check if word is valid
+      if (data.is_valid === false) {
+        setInvalidWordData({ suggestions: data.suggestions || [] });
+        setResult(null);
+      } else {
+        setResult(data);
+        setInvalidWordData(null);
+      }
     } catch (error) {
       console.error("Lookup error:", error);
       toast({
@@ -116,6 +128,17 @@ const Lookup = () => {
     }
   };
 
+  const handleClear = () => {
+    setWord("");
+    setResult(null);
+    setInvalidWordData(null);
+  };
+
+  const handleSuggestionClick = (suggestion: string) => {
+    setWord(suggestion);
+    lookupWord(suggestion);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-soft pb-20">
       <main className="w-full px-4 pt-6 pb-8 max-w-lg mx-auto">
@@ -138,9 +161,18 @@ const Lookup = () => {
               onChange={(e) => setWord(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder="Enter English word..."
-              className="pl-10 h-12 text-base border-2 border-border focus:border-primary bg-card shadow-card"
+              className="pl-10 pr-10 h-12 text-base border-2 border-border focus:border-primary bg-card shadow-card"
               disabled={isLoading}
             />
+            {word && (
+              <button
+                onClick={handleClear}
+                className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground hover:text-foreground transition-colors"
+                type="button"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            )}
           </div>
           <Button
             onClick={handleLookup}
@@ -155,6 +187,27 @@ const Lookup = () => {
             )}
           </Button>
         </div>
+
+        {/* Invalid Word Suggestions */}
+        {invalidWordData && !isLoading && (
+          <div className="bg-card border-2 border-border rounded-xl p-4 mb-6 animate-fade-in">
+            <p className="text-sm text-muted-foreground mb-3">
+              This word is not recognized. Did you mean:
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {invalidWordData.suggestions.map((suggestion) => (
+                <Badge
+                  key={suggestion}
+                  variant="secondary"
+                  className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors px-3 py-1.5 text-sm"
+                  onClick={() => handleSuggestionClick(suggestion)}
+                >
+                  {suggestion}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Loading State */}
         {isLoading && (
@@ -181,7 +234,7 @@ const Lookup = () => {
         )}
 
         {/* Empty State */}
-        {!result && !isLoading && (
+        {!result && !isLoading && !invalidWordData && (
           <div className="text-center py-12 text-muted-foreground animate-fade-in">
             <p className="text-sm">Enter a word above to get started</p>
           </div>

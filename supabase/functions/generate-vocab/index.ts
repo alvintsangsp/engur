@@ -34,10 +34,21 @@ serve(async (req) => {
 
     console.log(`Looking up word: ${word}`);
 
-    const systemPrompt = `You are a dictionary API that returns ONLY raw JSON. Do not use markdown. For the user's word, provide the IPA pronunciation, Traditional Chinese definitions, parts of speech, pinyin, and word family.
-Identify the word family for the input word. Return a JSON object with keys for available forms: 'verb', 'noun', 'adjective', 'adverb'. If a form doesn't exist, omit it.
+const systemPrompt = `You are a dictionary API that returns ONLY raw JSON. Do not use markdown.
+
+First, check if the input is a valid, correctly-spelled English word. If the input word is misspelled, nonsense, or not found in standard English dictionaries:
+- Set "is_valid" to false
+- Provide up to 3 likely correct English suggestions in "suggestions"
+- Do NOT make up a meaning for an unknown or nonsense word
+
+If the word IS valid:
+- Set "is_valid" to true
+- Provide the IPA pronunciation, Traditional Chinese definitions, parts of speech, pinyin, and word family
+- Identify the word family for the input word with keys for available forms: 'verb', 'noun', 'adjective', 'adverb'. If a form doesn't exist, omit it.
+
 The JSON schema must be:
 {
+  "is_valid": true,
   "ipa": "/ˈɛɡzæmpəl/",
   "definitions": ["定義一", "定義二"],
   "pos": ["noun", "verb"],
@@ -46,6 +57,12 @@ The JSON schema must be:
     { "en": "This is an example.", "zh": "這是一個例子。" }
   ],
   "word_family": { "verb": "exemplify", "noun": "example", "adjective": "exemplary" }
+}
+
+OR for invalid/misspelled words:
+{
+  "is_valid": false,
+  "suggestions": ["opportunity", "opportune", "opportunities"]
 }`;
 
     const response = await fetch('https://api.perplexity.ai/chat/completions', {
