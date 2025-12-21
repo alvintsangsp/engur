@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Loader2, X, Clock } from "lucide-react";
+import { Search, Loader2, X, Clock, RefreshCw } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +29,7 @@ interface VocabData {
   examples: Example[];
   word_family?: WordFamily;
   suggestions?: string[];
+  fromCache?: boolean;
 }
 
 const HISTORY_KEY = "vocab-search-history";
@@ -54,6 +55,7 @@ const addToSearchHistory = (word: string) => {
 const Lookup = () => {
   const [word, setWord] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [result, setResult] = useState<VocabData | null>(null);
   const [invalidWordData, setInvalidWordData] = useState<{ suggestions: string[] } | null>(null);
@@ -64,7 +66,7 @@ const Lookup = () => {
     setSearchHistory(getSearchHistory());
   }, []);
 
-  const lookupWord = async (searchWord: string) => {
+  const lookupWord = async (searchWord: string, forceRefresh = false) => {
     if (!searchWord.trim()) {
       toast({
         title: "Please enter a word",
@@ -75,13 +77,18 @@ const Lookup = () => {
 
     const normalizedWord = searchWord.trim().toLowerCase();
     setWord(normalizedWord);
-    setIsLoading(true);
-    setResult(null);
-    setInvalidWordData(null);
+    
+    if (forceRefresh) {
+      setIsRefreshing(true);
+    } else {
+      setIsLoading(true);
+      setResult(null);
+      setInvalidWordData(null);
+    }
 
     try {
       const { data, error } = await supabase.functions.invoke("generate-vocab", {
-        body: { word: normalizedWord },
+        body: { word: normalizedWord, forceRefresh },
       });
 
       if (error) {
@@ -97,6 +104,13 @@ const Lookup = () => {
         setInvalidWordData(null);
         // Add to history only on successful lookup
         setSearchHistory(addToSearchHistory(normalizedWord));
+        
+        if (forceRefresh) {
+          toast({
+            title: "Refreshed from Perplexity",
+            description: "Data has been updated with the latest information.",
+          });
+        }
       }
     } catch (error) {
       console.error("Lookup error:", error);
@@ -107,10 +121,17 @@ const Lookup = () => {
       });
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
     }
   };
 
   const handleLookup = () => lookupWord(word);
+
+  const handleRefresh = () => {
+    if (word) {
+      lookupWord(word, true);
+    }
+  };
 
   const handleSave = async () => {
     if (!result) return;
@@ -247,18 +268,50 @@ const Lookup = () => {
 
         {/* Result */}
         {result && !isLoading && (
-          <VocabResult
-            word={word.trim().toLowerCase()}
-            ipa={result.ipa}
-            definitions={result.definitions}
-            pos={result.pos}
-            pinyin={result.pinyin}
-            examples={result.examples}
-            wordFamily={result.word_family}
-            onSave={handleSave}
-            isSaving={isSaving}
-            onLookupWord={lookupWord}
-          />
+          <>
+            <VocabResult
+              word={word.trim().toLowerCase()}
+              ipa={result.ipa}
+              definitions={result.definitions}
+              pos={result.pos}
+              pinyin={result.pinyin}
+              examples={result.examples}
+              wordFamily={result.word_family}
+              onSave={handleSave}
+              isSaving={isSaving}
+              onLookupWord={lookupWord}
+            />
+            
+            {/* Refresh Button */}
+            <div className="mt-4 flex justify-center animate-fade-in">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                {isRefreshing ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Refreshing...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Refresh from Perplexity
+                  </>
+                )}
+              </Button>
+            </div>
+            
+            {/* Cache indicator */}
+            {result.fromCache && (
+              <p className="text-xs text-center text-muted-foreground mt-2">
+                Loaded from cache
+              </p>
+            )}
+          </>
         )}
 
         {/* Empty State with History */}
