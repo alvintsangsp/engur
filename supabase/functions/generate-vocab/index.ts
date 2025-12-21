@@ -46,13 +46,20 @@ If the word IS valid:
 - Provide the IPA pronunciation, Traditional Chinese definitions, parts of speech, pinyin, and word family
 - Identify the word family for the input word with keys for available forms: 'verb', 'noun', 'adjective', 'adverb'. If a form doesn't exist, omit it.
 
+CRITICAL LANGUAGE REQUIREMENTS:
+- ALL definitions MUST be written in Traditional Chinese (繁體中文) ONLY
+- Do NOT use Simplified Chinese (简体中文)
+- Do NOT use English, Hungarian, or ANY other language in the definitions field
+- The "zh" field in examples must also be in Traditional Chinese
+- Only the "ipa", "pos", "word_family" values, and "en" field should contain English
+
 The JSON schema must be:
 {
   "is_valid": true,
   "ipa": "/ˈɛɡzæmpəl/",
-  "definitions": ["定義一", "定義二"],
+  "definitions": ["例子，樣本", "示範，說明"],
   "pos": ["noun", "verb"],
-  "pinyin": ["dìng yì yī", "dìng yì èr"],
+  "pinyin": ["lì zi", "shì fàn"],
   "examples": [
     { "en": "This is an example.", "zh": "這是一個例子。" }
   ],
@@ -117,6 +124,18 @@ OR for invalid/misspelled words:
     }
 
     console.log('Parsed vocabulary data:', JSON.stringify(vocabData));
+
+    // Validate definitions are in Traditional Chinese (filter out Latin characters)
+    if (vocabData.is_valid && vocabData.definitions) {
+      const latinPattern = /[a-zA-Z]/;
+      vocabData.definitions = vocabData.definitions.map((def: string) => {
+        // If definition contains Latin letters, it's likely wrong language
+        if (latinPattern.test(def)) {
+          return '（說明暫時無法取得）';
+        }
+        return def;
+      });
+    }
 
     return new Response(JSON.stringify(vocabData), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
