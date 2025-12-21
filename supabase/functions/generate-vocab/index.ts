@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { word } = await req.json();
+    const { word, forceRefresh } = await req.json();
     
     if (!word || typeof word !== 'string') {
       console.error('Invalid word parameter:', word);
@@ -20,6 +21,33 @@ serve(async (req) => {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
+    }
+
+    const normalizedWord = word.trim().toLowerCase();
+
+    // Initialize Supabase client for caching
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Check cache first (unless forceRefresh is true)
+    if (!forceRefresh) {
+      console.log(`Checking cache for word: ${normalizedWord}`);
+      const { data: cachedData, error: cacheError } = await supabase
+        .from('vocab_cache')
+        .select('data')
+        .eq('word', normalizedWord)
+        .maybeSingle();
+
+      if (!cacheError && cachedData) {
+        console.log(`Cache hit for word: ${normalizedWord}`);
+        return new Response(JSON.stringify({ ...cachedData.data, fromCache: true }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      console.log(`Cache miss for word: ${normalizedWord}`);
+    } else {
+      console.log(`Force refresh requested for word: ${normalizedWord}`);
     }
 
     const perplexityApiKey = Deno.env.get('PERPLEXITY_API_KEY');
@@ -32,7 +60,7 @@ serve(async (req) => {
       });
     }
 
-    console.log(`Looking up word: ${word}`);
+    console.log(`Looking up word from Perplexity: ${normalizedWord}`);
 
 const systemPrompt = `You are a dictionary API that returns ONLY raw JSON. Do not use markdown.
 
@@ -82,7 +110,7 @@ OR for invalid/misspelled words:
         model: 'sonar-pro',
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: word }
+          { role: 'user', content: normalizedWord }
         ],
       }),
     });
@@ -137,7 +165,27 @@ OR for invalid/misspelled words:
       });
     }
 
-    return new Response(JSON.stringify(vocabData), {
+    // Cache the result if it's a valid word
+    if (vocabData.is_valid) {
+      console.log(`Caching result for word: ${normalizedWord}`);
+      const { error: upsertError } = await supabase
+        .from('vocab_cache')
+        .upsert(
+          { 
+            word: normalizedWord, 
+            data: vocabData, 
+            updated_at: new Date().toISOString() 
+          },
+          { onConflict: 'word' }
+        );
+      
+      if (upsertError) {
+        console.error('Failed to cache result:', upsertError);
+        // Don't fail the request, just log the error
+      }
+    }
+
+    return new Response(JSON.stringify({ ...vocabData, fromCache: false }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {

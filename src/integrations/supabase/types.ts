@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      vocab_cache: {
+        Row: {
+          created_at: string
+          data: Json
+          id: string
+          updated_at: string
+          word: string
+        }
+        Insert: {
+          created_at?: string
+          data: Json
+          id?: string
+          updated_at?: string
+          word: string
+        }
+        Update: {
+          created_at?: string
+          data?: Json
+          id?: string
+          updated_at?: string
+          word?: string
+        }
+        Relationships: []
+      }
       vocabulary: {
         Row: {
           created_at: string
