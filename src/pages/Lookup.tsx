@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Search, Loader2, X } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Search, Loader2, X, Clock } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -31,13 +31,38 @@ interface VocabData {
   suggestions?: string[];
 }
 
+const HISTORY_KEY = "vocab-search-history";
+const MAX_HISTORY = 15;
+
+const getSearchHistory = (): string[] => {
+  try {
+    const stored = localStorage.getItem(HISTORY_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+};
+
+const addToSearchHistory = (word: string) => {
+  const history = getSearchHistory();
+  const filtered = history.filter((w) => w !== word);
+  const updated = [word, ...filtered].slice(0, MAX_HISTORY);
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
+  return updated;
+};
+
 const Lookup = () => {
   const [word, setWord] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [result, setResult] = useState<VocabData | null>(null);
   const [invalidWordData, setInvalidWordData] = useState<{ suggestions: string[] } | null>(null);
+  const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const { toast } = useToast();
+
+  useEffect(() => {
+    setSearchHistory(getSearchHistory());
+  }, []);
 
   const lookupWord = async (searchWord: string) => {
     if (!searchWord.trim()) {
@@ -48,14 +73,15 @@ const Lookup = () => {
       return;
     }
 
-    setWord(searchWord.trim().toLowerCase());
+    const normalizedWord = searchWord.trim().toLowerCase();
+    setWord(normalizedWord);
     setIsLoading(true);
     setResult(null);
     setInvalidWordData(null);
 
     try {
       const { data, error } = await supabase.functions.invoke("generate-vocab", {
-        body: { word: searchWord.trim().toLowerCase() },
+        body: { word: normalizedWord },
       });
 
       if (error) {
@@ -69,6 +95,8 @@ const Lookup = () => {
       } else {
         setResult(data);
         setInvalidWordData(null);
+        // Add to history only on successful lookup
+        setSearchHistory(addToSearchHistory(normalizedWord));
       }
     } catch (error) {
       console.error("Lookup error:", error);
@@ -233,10 +261,33 @@ const Lookup = () => {
           />
         )}
 
-        {/* Empty State */}
+        {/* Empty State with History */}
         {!result && !isLoading && !invalidWordData && (
-          <div className="text-center py-12 text-muted-foreground animate-fade-in">
-            <p className="text-sm">Enter a word above to get started</p>
+          <div className="animate-fade-in">
+            {searchHistory.length > 0 ? (
+              <div className="bg-card border-2 border-border rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Clock className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm font-medium text-muted-foreground">Recent Searches</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {searchHistory.map((historyWord) => (
+                    <Badge
+                      key={historyWord}
+                      variant="outline"
+                      className="cursor-pointer hover:bg-primary hover:text-primary-foreground hover:border-primary transition-colors px-3 py-1.5 text-sm"
+                      onClick={() => lookupWord(historyWord)}
+                    >
+                      {historyWord}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-12 text-muted-foreground">
+                <p className="text-sm">Enter a word above to get started</p>
+              </div>
+            )}
           </div>
         )}
       </main>
