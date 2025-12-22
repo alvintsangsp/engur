@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, Loader2, X, Clock, RefreshCw, BookPlus } from "lucide-react";
+import { Search, Loader2, X, Clock, RefreshCw, BookPlus, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -52,6 +52,11 @@ const addToSearchHistory = (word: string) => {
   const updated = [word, ...filtered].slice(0, MAX_HISTORY);
   localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
   return updated;
+};
+
+const clearSearchHistory = () => {
+  localStorage.removeItem(HISTORY_KEY);
+  return [];
 };
 
 const Lookup = () => {
@@ -337,9 +342,20 @@ const Lookup = () => {
           <div className="animate-fade-in">
             {searchHistory.length > 0 ? (
               <div className="bg-card border-2 border-border rounded-xl p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <Clock className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm font-medium text-muted-foreground">Recent Searches</span>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm font-medium text-muted-foreground">Recent Searches</span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSearchHistory(clearSearchHistory())}
+                    className="h-7 px-2 text-muted-foreground hover:text-destructive"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 mr-1" />
+                    Clear
+                  </Button>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {searchHistory.map((historyWord) => (
