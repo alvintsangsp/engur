@@ -193,37 +193,7 @@ const Revision = () => {
         // Card is already added to seen set above
         await fetchNextCard();
       } else if (rating === "good") {
-        // "Done" button: Mark as learned and remove from future reviews
-        const { error } = await supabase
-          .from("vocabulary")
-          .update({
-            is_learned: true,
-          })
-          .eq("id", currentCard.id);
-
-        if (error) {
-          // If column doesn't exist (migration not run), skip update and continue
-          // This allows the app to work even without the migration
-          const errorMessage = error.message || "";
-          const errorCode = error.code || "";
-          
-          // Check if error is related to missing column
-          const isColumnError = 
-            errorMessage.includes("is_learned") || 
-            errorMessage.includes("column") || 
-            errorMessage.includes("does not exist") ||
-            errorMessage.includes("unknown column") ||
-            errorCode.includes("42703"); // PostgreSQL error code for undefined column
-          
-          if (isColumnError) {
-            console.warn("is_learned column not found, skipping update. Please run migration:", errorMessage);
-            // Continue without updating - just fetch next card
-          } else {
-            // Other errors should be thrown
-            throw error;
-          }
-        }
-
+        // "Done" button: Remove from again queue and move to next card
         // Remove from againQueue if present
         againQueueRef.current = againQueueRef.current.filter((card) => card.id !== currentCard.id);
         setAgainQueue(againQueueRef.current);

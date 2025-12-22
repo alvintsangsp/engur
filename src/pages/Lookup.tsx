@@ -28,6 +28,8 @@ interface VocabData {
   pinyin: string[];
   examples: Example[];
   word_family?: WordFamily;
+  common_synonym?: string;
+  common_antonym?: string;
   suggestions?: string[];
   fromCache?: boolean;
 }
@@ -290,6 +292,8 @@ const Lookup = () => {
               pinyin={result.pinyin}
               examples={result.examples}
               wordFamily={result.word_family}
+              commonSynonym={result.common_synonym}
+              commonAntonym={result.common_antonym}
               onSave={handleSave}
               isSaving={isSaving}
               onLookupWord={lookupWord}
