@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Languages, Quote, GitBranch, Volume2 } from "lucide-react";
+import { Languages, Quote, GitBranch, Volume2, ArrowLeftRight } from "lucide-react";
 import AudioPlayer from "./AudioPlayer";
 import { useSpeech } from "@/hooks/use-speech";
 
@@ -25,6 +25,8 @@ interface VocabResultProps {
   pinyin: string[];
   examples: Example[];
   wordFamily?: WordFamily;
+  commonSynonym?: string;
+  commonAntonym?: string;
   onSave: () => void;
   isSaving: boolean;
   onLookupWord?: (word: string) => void;
@@ -39,6 +41,8 @@ const VocabResult = ({
   pinyin,
   examples,
   wordFamily,
+  commonSynonym,
+  commonAntonym,
   onSave,
   isSaving,
   onLookupWord,
@@ -48,6 +52,7 @@ const VocabResult = ({
   const wordFamilyEntries = wordFamily 
     ? Object.entries(wordFamily).filter(([_, value]) => value) 
     : [];
+  const hasSynonymOrAntonym = (commonSynonym && commonSynonym.trim() !== "") || (commonAntonym && commonAntonym.trim() !== "");
   return (
     <Card className="animate-slide-up shadow-elevated border-0 bg-card overflow-hidden">
       <div className="h-1.5 bg-gradient-primary" />
@@ -170,6 +175,44 @@ const VocabResult = ({
                   <p className="font-chinese text-muted-foreground text-sm">{ex.zh}</p>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* Synonym & Antonym */}
+        {hasSynonymOrAntonym && (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <ArrowLeftRight className="w-4 h-4" />
+              <span className="text-xs font-medium uppercase tracking-wide">
+                Common Synonym & Antonym
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              {commonSynonym && commonSynonym.trim() !== "" && (
+                <div className="flex items-center gap-2 animate-fade-in">
+                  <span className="text-xs text-muted-foreground">Synonym:</span>
+                  <Badge
+                    variant="outline"
+                    className="cursor-pointer hover:bg-primary hover:text-primary-foreground hover:border-primary transition-colors px-3 py-1.5 text-sm font-medium"
+                    onClick={() => onLookupWord?.(commonSynonym)}
+                  >
+                    {commonSynonym}
+                  </Badge>
+                </div>
+              )}
+              {commonAntonym && commonAntonym.trim() !== "" && (
+                <div className="flex items-center gap-2 animate-fade-in" style={{ animationDelay: "50ms" }}>
+                  <span className="text-xs text-muted-foreground">Antonym:</span>
+                  <Badge
+                    variant="outline"
+                    className="cursor-pointer hover:bg-destructive hover:text-destructive-foreground hover:border-destructive transition-colors px-3 py-1.5 text-sm font-medium"
+                    onClick={() => onLookupWord?.(commonAntonym)}
+                  >
+                    {commonAntonym}
+                  </Badge>
+                </div>
+              )}
             </div>
           </div>
         )}

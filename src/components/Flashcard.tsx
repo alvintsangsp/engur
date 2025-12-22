@@ -39,7 +39,7 @@ const Flashcard = ({
     setIsFlipped(true);
   };
 
-  const handleRate = (rating: "again" | "good" | "easy") => {
+  const handleRate = (rating: "again" | "good") => {
     onRate(rating);
     setIsFlipped(false);
   };

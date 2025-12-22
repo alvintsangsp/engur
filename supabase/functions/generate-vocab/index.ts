@@ -73,13 +73,14 @@ If the word IS valid:
 - Set "is_valid" to true
 - Provide the IPA pronunciation, Traditional Chinese definitions, parts of speech, pinyin, and word family
 - Identify the word family for the input word with keys for available forms: 'verb', 'noun', 'adjective', 'adverb'. If a form doesn't exist, omit it.
+- Return exactly one high-frequency English synonym and one high-frequency English antonym of the headword. Leave the field as empty string "" if no natural synonym/antonym exists.
 
 CRITICAL LANGUAGE REQUIREMENTS:
 - ALL definitions MUST be written in Traditional Chinese (繁體中文) ONLY
 - Do NOT use Simplified Chinese (简体中文)
 - Do NOT use English, Hungarian, or ANY other language in the definitions field
 - The "zh" field in examples must also be in Traditional Chinese
-- Only the "ipa", "pos", "word_family" values, and "en" field should contain English
+- Only the "ipa", "pos", "word_family" values, "en" field, "common_synonym", and "common_antonym" should contain English
 
 The JSON schema must be:
 {
@@ -91,7 +92,9 @@ The JSON schema must be:
   "examples": [
     { "en": "This is an example.", "zh": "這是一個例子。" }
   ],
-  "word_family": { "verb": "exemplify", "noun": "example", "adjective": "exemplary" }
+  "word_family": { "verb": "exemplify", "noun": "example", "adjective": "exemplary" },
+  "common_synonym": "instance",
+  "common_antonym": ""
 }
 
 OR for invalid/misspelled words:
