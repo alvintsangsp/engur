@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Loader2, Trash2, BookOpen, Volume2 } from "lucide-react";
+import { Loader2, Trash2, BookOpen, Volume2, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +21,7 @@ const Deck = () => {
   const [words, setWords] = useState<VocabWord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [reviewingId, setReviewingId] = useState<string | null>(null);
   const { toast } = useToast();
   const { speak, speakingWord } = useSpeech();
   const navigate = useNavigate();
@@ -76,6 +77,33 @@ const Deck = () => {
     }
   };
 
+  const handleReviewLater = async (id: string, word: string) => {
+    setReviewingId(id);
+    try {
+      const { error } = await supabase
+        .from("vocabulary")
+        .update({ created_at: new Date().toISOString() })
+        .eq("id", id);
+
+      if (error) throw error;
+
+      // Re-fetch to get updated order
+      await fetchWords();
+      toast({
+        title: "Moved to later",
+        description: `"${word}" will appear later in your deck.`,
+      });
+    } catch (error) {
+      console.error("Error updating word:", error);
+      toast({
+        title: "Failed to update word",
+        variant: "destructive",
+      });
+    } finally {
+      setReviewingId(null);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-soft pb-20">
       <main className="w-full px-4 pt-6 pb-8 max-w-lg mx-auto">
@@ -103,7 +131,7 @@ const Deck = () => {
             {words.map((item, index) => (
               <Card
                 key={item.id}
-                className="relative p-4 border border-border shadow-card bg-card animate-slide-up cursor-pointer"
+                className="relative p-4 pr-12 border border-border shadow-card bg-card animate-slide-up cursor-pointer"
                 style={{ animationDelay: `${index * 50}ms` }}
                 onClick={() => navigate(`/word/${encodeURIComponent(item.word)}`)}
               >
@@ -142,10 +170,30 @@ const Deck = () => {
                     {item.definitions[0]}
                   </p>
                 )}
+                {/* Review Later button - top right */}
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="absolute bottom-3 right-3 text-muted-foreground hover:text-destructive h-10 w-10 p-0"
+                  aria-label="Review Later"
+                  className={`absolute top-3 right-3 h-8 w-8 p-0 ${reviewingId === item.id ? "text-primary animate-pulse-soft" : "text-muted-foreground hover:text-primary"}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleReviewLater(item.id, item.word);
+                  }}
+                  disabled={reviewingId === item.id}
+                >
+                  {reviewingId === item.id ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <History className="w-4 h-4" />
+                  )}
+                </Button>
+                {/* Delete button - bottom right */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  aria-label="Delete word"
+                  className="absolute bottom-3 right-3 text-muted-foreground hover:text-destructive h-8 w-8 p-0"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleDelete(item.id, item.word);
