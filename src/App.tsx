@@ -8,6 +8,7 @@ import Deck from "./pages/Deck";
 import Revision from "./pages/Revision";
 import WordDetail from "./pages/WordDetail";
 import NotFound from "./pages/NotFound";
+import ScrollToTop from "./components/ScrollToTop";
 
 const queryClient = new QueryClient();
 
@@ -17,6 +18,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <ScrollToTop />
         <Routes>
           <Route path="/" element={<Lookup />} />
           <Route path="/deck" element={<Deck />} />
