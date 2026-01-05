@@ -74,13 +74,15 @@ If the word IS valid:
 - Provide the IPA pronunciation, Traditional Chinese definitions, parts of speech, pinyin, and word family
 - Identify the word family for the input word with keys for available forms: 'verb', 'noun', 'adjective', 'adverb'. If a form doesn't exist, omit it.
 - Return exactly one high-frequency English synonym and one high-frequency English antonym of the headword. Leave the field as empty string "" if no natural synonym/antonym exists.
+- Return a list of 2-3 common phrasal verbs or idiomatic phrases containing the target word. Include a brief Traditional Chinese explanation for each. If no common phrases exist, return an empty array.
 
 CRITICAL LANGUAGE REQUIREMENTS:
 - ALL definitions MUST be written in Traditional Chinese (繁體中文) ONLY
 - Do NOT use Simplified Chinese (简体中文)
 - Do NOT use English, Hungarian, or ANY other language in the definitions field
 - The "zh" field in examples must also be in Traditional Chinese
-- Only the "ipa", "pos", "word_family" values, "en" field, "common_synonym", and "common_antonym" should contain English
+- The "meaning" field in phrases must also be in Traditional Chinese
+- Only the "ipa", "pos", "word_family" values, "en" field, "phrase" field, "common_synonym", and "common_antonym" should contain English
 
 The JSON schema must be:
 {
@@ -94,7 +96,11 @@ The JSON schema must be:
   ],
   "word_family": { "verb": "exemplify", "noun": "example", "adjective": "exemplary" },
   "common_synonym": "instance",
-  "common_antonym": ""
+  "common_antonym": "",
+  "phrases": [
+    { "phrase": "for example", "meaning": "例如；舉例來說" },
+    { "phrase": "set an example", "meaning": "樹立榜樣" }
+  ]
 }
 
 OR for invalid/misspelled words:

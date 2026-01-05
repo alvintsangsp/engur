@@ -20,6 +20,11 @@ interface WordFamily {
   adverb?: string;
 }
 
+interface Phrase {
+  phrase: string;
+  meaning: string;
+}
+
 interface VocabData {
   is_valid?: boolean;
   ipa?: string;
@@ -28,6 +33,7 @@ interface VocabData {
   pinyin: string[];
   examples: Example[];
   word_family?: WordFamily;
+  phrases?: Phrase[];
   common_synonym?: string;
   common_antonym?: string;
   suggestions?: string[];
@@ -297,6 +303,7 @@ const Lookup = () => {
               pinyin={result.pinyin}
               examples={result.examples}
               wordFamily={result.word_family}
+              phrases={result.phrases}
               commonSynonym={result.common_synonym}
               commonAntonym={result.common_antonym}
               onSave={handleSave}
