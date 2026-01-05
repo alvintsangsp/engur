@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Languages, Quote, GitBranch, Volume2, ArrowLeftRight } from "lucide-react";
+import { Languages, Quote, GitBranch, Volume2, ArrowLeftRight, MessageCircle } from "lucide-react";
 import AudioPlayer from "./AudioPlayer";
 import { useSpeech } from "@/hooks/use-speech";
 import { useChineseSpeech } from "@/hooks/use-chinese-speech";
@@ -18,6 +18,11 @@ interface Example {
   zh: string;
 }
 
+interface Phrase {
+  phrase: string;
+  meaning: string;
+}
+
 interface VocabResultProps {
   word: string;
   ipa?: string;
@@ -26,6 +31,7 @@ interface VocabResultProps {
   pinyin: string[];
   examples: Example[];
   wordFamily?: WordFamily;
+  phrases?: Phrase[];
   commonSynonym?: string;
   commonAntonym?: string;
   onSave: () => void;
@@ -42,6 +48,7 @@ const VocabResult = ({
   pinyin,
   examples,
   wordFamily,
+  phrases,
   commonSynonym,
   commonAntonym,
   onSave,
@@ -55,6 +62,7 @@ const VocabResult = ({
     ? Object.entries(wordFamily).filter(([_, value]) => value) 
     : [];
   const hasSynonymOrAntonym = (commonSynonym && commonSynonym.trim() !== "") || (commonAntonym && commonAntonym.trim() !== "");
+  const hasPhrases = phrases && phrases.length > 0;
   return (
     <Card className="animate-slide-up shadow-elevated border-0 bg-card overflow-hidden">
       <div className="h-1.5 bg-gradient-primary" />
@@ -121,6 +129,31 @@ const VocabResult = ({
                     <Volume2 className="w-3.5 h-3.5" />
                   </Button>
                 </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Common Phrases */}
+        {hasPhrases && (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <MessageCircle className="w-4 h-4" />
+              <span className="text-xs font-medium uppercase tracking-wide">
+                Common Phrases
+              </span>
+            </div>
+            <div className="space-y-2">
+              {phrases!.map((item, i) => (
+                <button
+                  key={i}
+                  onClick={() => onLookupWord?.(item.phrase)}
+                  className="w-full flex items-center justify-between gap-3 p-3 rounded-xl border border-border bg-card hover:bg-primary/5 hover:border-primary/30 transition-colors animate-fade-in cursor-pointer text-left"
+                  style={{ animationDelay: `${i * 50}ms` }}
+                >
+                  <span className="font-semibold text-foreground">{item.phrase}</span>
+                  <span className="font-chinese text-muted-foreground text-sm">{item.meaning}</span>
+                </button>
               ))}
             </div>
           </div>
