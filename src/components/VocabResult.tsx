@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Languages, Quote, GitBranch, Volume2, ArrowLeftRight } from "lucide-react";
 import AudioPlayer from "./AudioPlayer";
 import { useSpeech } from "@/hooks/use-speech";
+import { useChineseSpeech } from "@/hooks/use-chinese-speech";
 
 interface WordFamily {
   verb?: string;
@@ -49,6 +50,7 @@ const VocabResult = ({
   hideSaveButton = false,
 }: VocabResultProps) => {
   const { speak, speakingWord } = useSpeech();
+  const { speakChinese, speakingId } = useChineseSpeech();
   const wordFamilyEntries = wordFamily 
     ? Object.entries(wordFamily).filter(([_, value]) => value) 
     : [];
@@ -142,8 +144,20 @@ const VocabResult = ({
                 <span className="w-6 h-6 rounded-full bg-primary/20 text-primary text-sm font-semibold flex items-center justify-center flex-shrink-0">
                   {i + 1}
                 </span>
-                <div>
-                  <p className="font-chinese text-base sm:text-lg text-foreground leading-relaxed">{def}</p>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <p className="font-chinese text-base sm:text-lg text-foreground leading-relaxed">{def}</p>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={`h-6 w-6 p-0 flex-shrink-0 ${speakingId === `def-${i}` ? "text-primary animate-pulse" : "text-muted-foreground hover:text-primary"}`}
+                      onClick={() => speakChinese(def, `def-${i}`)}
+                      disabled={speakingId === `def-${i}`}
+                      aria-label="Review Later"
+                    >
+                      <Volume2 className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
                   {pinyin[i] && (
                     <p className="text-sm text-muted-foreground mt-1">
                       {pinyin[i]}
