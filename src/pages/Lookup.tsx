@@ -384,6 +384,10 @@ const Lookup = () => {
             )}
           </div>
         )}
+        {/* Version Number */}
+        <p className="text-center text-xs text-muted-foreground mt-8">
+          v1.2601
+        </p>
       </main>
 
       {/* Fixed Save Button Bar */}
