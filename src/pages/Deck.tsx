@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Loader2, Trash2, BookOpen, Volume2, History } from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { Loader2, Trash2, BookOpen, Volume2, History, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
@@ -17,12 +17,24 @@ interface VocabWord {
   created_at: string;
 }
 
+interface DeletedWord extends VocabWord {
+  pinyin: string[];
+  examples: unknown;
+  next_review_at: string | null;
+  interval_days: number | null;
+  ease_factor: number | null;
+}
+
+const UNDO_TIMEOUT = 5000; // 5 seconds to undo
+
 const Deck = () => {
   const [words, setWords] = useState<VocabWord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [reviewingId, setReviewingId] = useState<string | null>(null);
-  const { toast } = useToast();
+  const [pendingDelete, setPendingDelete] = useState<DeletedWord | null>(null);
+  const undoTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const { toast, dismiss } = useToast();
   const { speak, speakingWord } = useSpeech();
   const navigate = useNavigate();
 
@@ -51,21 +63,105 @@ const Deck = () => {
     fetchWords();
   }, []);
 
-  const handleDelete = async (id: string, word: string) => {
-    setDeletingId(id);
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (undoTimeoutRef.current) {
+        clearTimeout(undoTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const permanentlyDelete = useCallback(async (wordData: DeletedWord) => {
     try {
       const { error } = await supabase
         .from("vocabulary")
         .delete()
-        .eq("id", id);
+        .eq("id", wordData.id);
 
       if (error) throw error;
+    } catch (error) {
+      console.error("Error permanently deleting word:", error);
+    }
+    setPendingDelete(null);
+  }, []);
 
+  const restoreWord = useCallback(async (wordData: DeletedWord) => {
+    // Clear the timeout
+    if (undoTimeoutRef.current) {
+      clearTimeout(undoTimeoutRef.current);
+      undoTimeoutRef.current = null;
+    }
+
+    // Restore the word to the UI
+    setWords((prev) => {
+      const restored = [...prev, wordData].sort(
+        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      );
+      return restored;
+    });
+
+    setPendingDelete(null);
+
+    toast({
+      title: "Word restored",
+      description: `"${wordData.word}" has been restored to your deck.`,
+    });
+  }, [toast]);
+
+  const handleDelete = async (id: string, word: string) => {
+    setDeletingId(id);
+
+    try {
+      // First, fetch the full word data for potential restore
+      const { data: fullWordData, error: fetchError } = await supabase
+        .from("vocabulary")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      const deletedWord = fullWordData as DeletedWord;
+
+      // If there's a pending delete, permanently delete it first
+      if (pendingDelete && undoTimeoutRef.current) {
+        clearTimeout(undoTimeoutRef.current);
+        await permanentlyDelete(pendingDelete);
+      }
+
+      // Remove from UI immediately
       setWords((prev) => prev.filter((w) => w.id !== id));
-      toast({
+
+      // Store for potential undo
+      setPendingDelete(deletedWord);
+
+      // Show toast with undo action
+      const { id: toastId } = toast({
         title: "Word removed",
-        description: `"${word}" has been removed from your deck.`,
+        description: `"${word}" has been removed.`,
+        action: (
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 h-8"
+            onClick={() => {
+              dismiss(toastId);
+              restoreWord(deletedWord);
+            }}
+          >
+            <Undo2 className="w-3.5 h-3.5" />
+            Undo
+          </Button>
+        ),
+        duration: UNDO_TIMEOUT,
       });
+
+      // Set timeout to permanently delete
+      undoTimeoutRef.current = setTimeout(() => {
+        permanentlyDelete(deletedWord);
+      }, UNDO_TIMEOUT);
+
     } catch (error) {
       console.error("Error deleting word:", error);
       toast({
