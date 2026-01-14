@@ -119,14 +119,14 @@ const VocabResult = ({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className={`h-7 w-7 p-0 ml-1 ${speakingWord === `form-${posLabel}` ? "text-primary animate-pulse" : "text-muted-foreground hover:text-primary"}`}
+                    className={`h-9 w-9 p-0 ml-1 ${speakingWord === `form-${posLabel}` ? "text-primary animate-pulse" : "text-muted-foreground hover:text-primary"}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       speak(wordForm as string, `form-${posLabel}`);
                     }}
                     disabled={speakingWord === `form-${posLabel}`}
                   >
-                    <Volume2 className="w-3.5 h-3.5" />
+                    <Volume2 className="w-5 h-5" />
                   </Button>
                 </div>
               ))}
@@ -183,12 +183,12 @@ const VocabResult = ({
                     <Button
                       variant="ghost"
                       size="sm"
-                      className={`h-6 w-6 p-0 flex-shrink-0 ${speakingId === `def-${i}` ? "text-primary animate-pulse" : "text-muted-foreground hover:text-primary"}`}
+                      className={`h-9 w-9 p-0 flex-shrink-0 ${speakingId === `def-${i}` ? "text-primary animate-pulse" : "text-muted-foreground hover:text-primary"}`}
                       onClick={() => speakChinese(def, `def-${i}`)}
                       disabled={speakingId === `def-${i}`}
                       aria-label="Review Later"
                     >
-                      <Volume2 className="w-3.5 h-3.5" />
+                      <Volume2 className="w-5 h-5" />
                     </Button>
                   </div>
                   {pinyin[i] && (
