@@ -139,14 +139,14 @@ const Deck = () => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className={`h-8 w-8 p-0 flex-shrink-0 ${speakingWord === item.id ? "text-primary animate-pulse-soft" : "text-muted-foreground hover:text-primary"}`}
+                    className={`h-11 w-11 p-0 flex-shrink-0 ${speakingWord === item.id ? "text-primary animate-pulse-soft" : "text-muted-foreground hover:text-primary"}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       speak(item.word, item.id);
                     }}
                     disabled={speakingWord === item.id}
                   >
-                    <Volume2 className="w-4 h-4" />
+                    <Volume2 className="w-6 h-6" />
                   </Button>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-lg font-display font-semibold text-foreground">
