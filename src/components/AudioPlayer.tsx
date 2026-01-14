@@ -90,11 +90,11 @@ const AudioPlayer = ({ word, ipa, compact = false }: AudioPlayerProps) => {
       <Button
         onClick={speak}
         variant="ghost"
-        size={compact ? "sm" : "default"}
+        size={compact ? "default" : "lg"}
         className={`gap-2 ${isSpeaking ? "text-primary animate-pulse-soft" : "text-muted-foreground hover:text-primary"}`}
         disabled={isSpeaking}
       >
-        <Volume2 className={compact ? "w-4 h-4" : "w-5 h-5"} />
+        <Volume2 className={compact ? "w-5 h-5" : "w-6 h-6"} />
         {!compact && <span>Play</span>}
       </Button>
 
