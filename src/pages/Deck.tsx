@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
 import { Loader2, Trash2, BookOpen, Volume2, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
 import { useSpeech } from "@/hooks/use-speech";
 import { useNavigate } from "react-router-dom";
+import SwipeableCard from "@/components/SwipeableCard";
 
 interface VocabWord {
   id: string;
@@ -129,84 +129,92 @@ const Deck = () => {
         {!isLoading && words.length > 0 && (
           <div className="space-y-3 animate-fade-in">
             {words.map((item, index) => (
-              <Card
+              <div
                 key={item.id}
-                className="relative p-4 pr-12 border border-border shadow-card bg-card animate-slide-up cursor-pointer"
+                className="animate-slide-up"
                 style={{ animationDelay: `${index * 50}ms` }}
-                onClick={() => navigate(`/word/${encodeURIComponent(item.word)}`)}
               >
-                <div className="flex items-start gap-2 mb-1">
+                <SwipeableCard
+                  onSwipeLeft={() => handleDelete(item.id, item.word)}
+                  onSwipeRight={() => handleReviewLater(item.id, item.word)}
+                  leftLabel="Delete"
+                  rightLabel="Move to end"
+                  className="relative p-4 pr-12 border border-border shadow-card cursor-pointer"
+                  onClick={() => navigate(`/word/${encodeURIComponent(item.word)}`)}
+                >
+                  <div className="flex items-start gap-2 mb-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={`h-11 w-11 p-0 flex-shrink-0 ${speakingWord === item.id ? "text-primary animate-pulse-soft" : "text-muted-foreground hover:text-primary"}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        speak(item.word, item.id);
+                      }}
+                      disabled={speakingWord === item.id}
+                    >
+                      <Volume2 className="w-6 h-6" />
+                    </Button>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-lg font-display font-semibold text-foreground">
+                        {item.word}
+                      </h3>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-1 mb-2">
+                    {item.pos.map((p, i) => (
+                      <Badge
+                        key={i}
+                        variant="secondary"
+                        className="bg-primary/10 text-primary border-0 text-xs"
+                      >
+                        {p}
+                      </Badge>
+                    ))}
+                  </div>
+                  {item.definitions[0] && (
+                    <p className="font-chinese text-sm text-muted-foreground line-clamp-2 mb-3">
+                      {item.definitions[0]}
+                    </p>
+                  )}
+                  {/* Review Later button - top right */}
                   <Button
                     variant="ghost"
                     size="sm"
-                    className={`h-11 w-11 p-0 flex-shrink-0 ${speakingWord === item.id ? "text-primary animate-pulse-soft" : "text-muted-foreground hover:text-primary"}`}
+                    aria-label="Review Later"
+                    className={`absolute top-3 right-3 h-8 w-8 p-0 ${reviewingId === item.id ? "text-primary animate-pulse-soft" : "text-muted-foreground hover:text-primary"}`}
                     onClick={(e) => {
                       e.stopPropagation();
-                      speak(item.word, item.id);
+                      handleReviewLater(item.id, item.word);
                     }}
-                    disabled={speakingWord === item.id}
+                    disabled={reviewingId === item.id}
                   >
-                    <Volume2 className="w-6 h-6" />
+                    {reviewingId === item.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <History className="w-4 h-4" />
+                    )}
                   </Button>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-lg font-display font-semibold text-foreground">
-                      {item.word}
-                    </h3>
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-1 mb-2">
-                  {item.pos.map((p, i) => (
-                    <Badge
-                      key={i}
-                      variant="secondary"
-                      className="bg-primary/10 text-primary border-0 text-xs"
-                    >
-                      {p}
-                    </Badge>
-                  ))}
-                </div>
-                {item.definitions[0] && (
-                  <p className="font-chinese text-sm text-muted-foreground line-clamp-2 mb-3">
-                    {item.definitions[0]}
-                  </p>
-                )}
-                {/* Review Later button - top right */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  aria-label="Review Later"
-                  className={`absolute top-3 right-3 h-8 w-8 p-0 ${reviewingId === item.id ? "text-primary animate-pulse-soft" : "text-muted-foreground hover:text-primary"}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleReviewLater(item.id, item.word);
-                  }}
-                  disabled={reviewingId === item.id}
-                >
-                  {reviewingId === item.id ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <History className="w-4 h-4" />
-                  )}
-                </Button>
-                {/* Delete button - bottom right */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  aria-label="Delete word"
-                  className="absolute bottom-3 right-3 text-muted-foreground hover:text-destructive h-8 w-8 p-0"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDelete(item.id, item.word);
-                  }}
-                  disabled={deletingId === item.id}
-                >
-                  {deletingId === item.id ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Trash2 className="w-4 h-4" />
-                  )}
-                </Button>
-              </Card>
+                  {/* Delete button - bottom right */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    aria-label="Delete word"
+                    className="absolute bottom-3 right-3 text-muted-foreground hover:text-destructive h-8 w-8 p-0"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(item.id, item.word);
+                    }}
+                    disabled={deletingId === item.id}
+                  >
+                    {deletingId === item.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-4 h-4" />
+                    )}
+                  </Button>
+                </SwipeableCard>
+              </div>
             ))}
           </div>
         )}
