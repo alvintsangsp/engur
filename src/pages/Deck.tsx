@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-import { Loader2, Trash2, BookOpen, Volume2, History, Undo2 } from "lucide-react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { Loader2, Trash2, BookOpen, Volume2, History, Undo2, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
@@ -33,7 +34,9 @@ const Deck = () => {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [reviewingId, setReviewingId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<DeletedWord | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const undoTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const { toast, dismiss } = useToast();
   const { speak, speakingWord } = useSpeech();
   const navigate = useNavigate();
@@ -62,6 +65,17 @@ const Deck = () => {
   useEffect(() => {
     fetchWords();
   }, []);
+
+  // Filter words based on search query
+  const filteredWords = useMemo(() => {
+    if (!searchQuery.trim()) return words;
+    const query = searchQuery.toLowerCase().trim();
+    return words.filter((word) => 
+      word.word.toLowerCase().includes(query) ||
+      word.definitions.some(def => def.toLowerCase().includes(query)) ||
+      word.pos.some(p => p.toLowerCase().includes(query))
+    );
+  }, [words, searchQuery]);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -204,7 +218,7 @@ const Deck = () => {
     <div className="min-h-screen bg-gradient-soft pb-20">
       <main className="w-full px-4 pt-6 pb-8 max-w-lg mx-auto">
         {/* Header */}
-        <div className="text-center mb-6 animate-fade-in">
+        <div className="text-center mb-4 animate-fade-in">
           <h1 className="text-2xl font-display font-bold text-foreground mb-1">
             My Deck
           </h1>
@@ -212,6 +226,34 @@ const Deck = () => {
             {words.length} word{words.length !== 1 ? "s" : ""} saved
           </p>
         </div>
+
+        {/* Search Input */}
+        {!isLoading && words.length > 0 && (
+          <div className="relative mb-4 animate-fade-in">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              ref={searchInputRef}
+              type="text"
+              placeholder="Search words, definitions..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 pr-9 h-10 bg-background/80 backdrop-blur-sm"
+            />
+            {searchQuery && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                onClick={() => {
+                  setSearchQuery("");
+                  searchInputRef.current?.focus();
+                }}
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
+        )}
 
         {/* Loading State */}
         {isLoading && (
@@ -222,9 +264,9 @@ const Deck = () => {
         )}
 
         {/* Word List */}
-        {!isLoading && words.length > 0 && (
+        {!isLoading && filteredWords.length > 0 && (
           <div className="space-y-3 animate-fade-in">
-            {words.map((item, index) => (
+            {filteredWords.map((item, index) => (
               <div
                 key={item.id}
                 className="animate-slide-up"
@@ -312,6 +354,21 @@ const Deck = () => {
                 </SwipeableCard>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* No Results State */}
+        {!isLoading && words.length > 0 && filteredWords.length === 0 && (
+          <div className="text-center py-12 animate-fade-in">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4">
+              <Search className="w-8 h-8 text-muted-foreground" />
+            </div>
+            <h2 className="text-xl font-display font-bold text-foreground mb-2">
+              No matches found
+            </h2>
+            <p className="text-sm text-muted-foreground max-w-xs mx-auto">
+              Try a different search term.
+            </p>
           </div>
         )}
 
