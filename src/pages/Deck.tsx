@@ -1,8 +1,15 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { Loader2, Trash2, BookOpen, Volume2, History, Undo2, Search, X } from "lucide-react";
+import { Loader2, Trash2, BookOpen, Volume2, History, Undo2, Search, X, ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
@@ -10,12 +17,15 @@ import { useSpeech } from "@/hooks/use-speech";
 import { useNavigate } from "react-router-dom";
 import SwipeableCard from "@/components/SwipeableCard";
 
+type SortOption = "date-asc" | "date-desc" | "alpha-asc" | "alpha-desc" | "review-due" | "review-later";
+
 interface VocabWord {
   id: string;
   word: string;
   definitions: string[];
   pos: string[];
   created_at: string;
+  next_review_at: string | null;
 }
 
 interface DeletedWord extends VocabWord {
@@ -35,6 +45,7 @@ const Deck = () => {
   const [reviewingId, setReviewingId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<DeletedWord | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortOption, setSortOption] = useState<SortOption>("date-asc");
   const undoTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const { toast, dismiss } = useToast();
@@ -46,7 +57,7 @@ const Deck = () => {
     try {
       const { data, error } = await supabase
         .from("vocabulary")
-        .select("id, word, definitions, pos, created_at")
+        .select("id, word, definitions, pos, created_at, next_review_at")
         .order("created_at", { ascending: true });
 
       if (error) throw error;
@@ -66,16 +77,60 @@ const Deck = () => {
     fetchWords();
   }, []);
 
-  // Filter words based on search query
-  const filteredWords = useMemo(() => {
-    if (!searchQuery.trim()) return words;
-    const query = searchQuery.toLowerCase().trim();
-    return words.filter((word) => 
-      word.word.toLowerCase().includes(query) ||
-      word.definitions.some(def => def.toLowerCase().includes(query)) ||
-      word.pos.some(p => p.toLowerCase().includes(query))
-    );
-  }, [words, searchQuery]);
+  // Filter and sort words
+  const filteredAndSortedWords = useMemo(() => {
+    let result = [...words];
+    
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      result = result.filter((word) => 
+        word.word.toLowerCase().includes(query) ||
+        word.definitions.some(def => def.toLowerCase().includes(query)) ||
+        word.pos.some(p => p.toLowerCase().includes(query))
+      );
+    }
+    
+    // Sort based on selected option
+    result.sort((a, b) => {
+      switch (sortOption) {
+        case "date-asc":
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        case "date-desc":
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        case "alpha-asc":
+          return a.word.localeCompare(b.word);
+        case "alpha-desc":
+          return b.word.localeCompare(a.word);
+        case "review-due": {
+          // Words due for review first (past next_review_at), then by date
+          const now = new Date().getTime();
+          const aReview = a.next_review_at ? new Date(a.next_review_at).getTime() : now;
+          const bReview = b.next_review_at ? new Date(b.next_review_at).getTime() : now;
+          const aDue = aReview <= now;
+          const bDue = bReview <= now;
+          if (aDue && !bDue) return -1;
+          if (!aDue && bDue) return 1;
+          return aReview - bReview;
+        }
+        case "review-later": {
+          // Words not due first, then by review date descending
+          const now = new Date().getTime();
+          const aReview = a.next_review_at ? new Date(a.next_review_at).getTime() : now;
+          const bReview = b.next_review_at ? new Date(b.next_review_at).getTime() : now;
+          const aDue = aReview <= now;
+          const bDue = bReview <= now;
+          if (!aDue && bDue) return -1;
+          if (aDue && !bDue) return 1;
+          return bReview - aReview;
+        }
+        default:
+          return 0;
+      }
+    });
+    
+    return result;
+  }, [words, searchQuery, sortOption]);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -227,31 +282,50 @@ const Deck = () => {
           </p>
         </div>
 
-        {/* Search Input */}
+        {/* Search and Sort Controls */}
         {!isLoading && words.length > 0 && (
-          <div className="relative mb-4 animate-fade-in">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              ref={searchInputRef}
-              type="text"
-              placeholder="Search words, definitions..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 pr-9 h-10 bg-background/80 backdrop-blur-sm"
-            />
-            {searchQuery && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
-                onClick={() => {
-                  setSearchQuery("");
-                  searchInputRef.current?.focus();
-                }}
-              >
-                <X className="w-4 h-4" />
-              </Button>
-            )}
+          <div className="flex gap-2 mb-4 animate-fade-in">
+            {/* Search Input */}
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                ref={searchInputRef}
+                type="text"
+                placeholder="Search..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 pr-9 h-10 bg-background/80 backdrop-blur-sm"
+              />
+              {searchQuery && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                  onClick={() => {
+                    setSearchQuery("");
+                    searchInputRef.current?.focus();
+                  }}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              )}
+            </div>
+            
+            {/* Sort Dropdown */}
+            <Select value={sortOption} onValueChange={(value: SortOption) => setSortOption(value)}>
+              <SelectTrigger className="w-[140px] h-10 bg-background/80 backdrop-blur-sm">
+                <ArrowUpDown className="w-4 h-4 mr-2 text-muted-foreground" />
+                <SelectValue placeholder="Sort" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="date-asc">Oldest first</SelectItem>
+                <SelectItem value="date-desc">Newest first</SelectItem>
+                <SelectItem value="alpha-asc">A → Z</SelectItem>
+                <SelectItem value="alpha-desc">Z → A</SelectItem>
+                <SelectItem value="review-due">Due for review</SelectItem>
+                <SelectItem value="review-later">Review later</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         )}
 
@@ -264,9 +338,9 @@ const Deck = () => {
         )}
 
         {/* Word List */}
-        {!isLoading && filteredWords.length > 0 && (
+        {!isLoading && filteredAndSortedWords.length > 0 && (
           <div className="space-y-3 animate-fade-in">
-            {filteredWords.map((item, index) => (
+            {filteredAndSortedWords.map((item, index) => (
               <div
                 key={item.id}
                 className="animate-slide-up"
@@ -358,7 +432,7 @@ const Deck = () => {
         )}
 
         {/* No Results State */}
-        {!isLoading && words.length > 0 && filteredWords.length === 0 && (
+        {!isLoading && words.length > 0 && filteredAndSortedWords.length === 0 && (
           <div className="text-center py-12 animate-fade-in">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4">
               <Search className="w-8 h-8 text-muted-foreground" />
